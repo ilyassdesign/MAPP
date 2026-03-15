@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MapLeads — Find Local Business Leads</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Favicon (SVG inline as data URI) -->
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     PREVIEW BAR  (remove in production)
+══════════════════════════════════════════════════════════ -->
+<div class="pbar">
+  <span class="pbar-label">Preview</span>
+  <div class="ptab active" onclick="switchView('landing',this)">Landing Page</div>
+  <div class="ptab"        onclick="switchView('dashboard',this)">Dashboard</div>
+  <div class="ptab"        onclick="switchView('billing',this)">Billing</div>
+  <div class="ptab"        onclick="openModal()">Upgrade Modal</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     LANDING PAGE
+══════════════════════════════════════════════════════════ -->
+<div id="view-landing" class="view active" style="padding-top:48px;">
+
+  <!-- ── Navbar ── -->
+  <nav class="g-nav">
+    <a class="g-logo" href="#">
+      <div class="g-logo-mark">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="10" r="4"/>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        </svg>
+      </div>
+      <span class="g-logo-text">Map<span>Leads</span></span>
+    </a>
+    <div class="g-nav-links">
+      <a class="gnl" href="#features">Features</a>
+      <a class="gnl" href="#pricing">Pricing</a>
+      <a class="gnl" href="#testimonials">Testimonials</a>
+    </div>
+    <div class="g-nav-actions">
+      <button class="btn-ghost">Sign In</button>
+      <button class="btn-blue" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Start Free</button>
+    </div>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div class="hero-inner">
+
+      <!-- Left: Copy -->
+      <div>
+        <div class="hero-badge fu d0">
+          <div class="hero-badge-dot"></div>
+          <span>Maps-Powered Lead Engine</span>
+        </div>
+        <h1 class="fu d1">Find Local Business<br>Leads <em>Instantly</em></h1>
+        <p class="fu d2">Pull verified emails, phones, and websites from any local business category in any city — powered by real-time map data. Stop prospecting manually.</p>
+        <div class="hero-cta fu d3">
+          <button class="btn-blue" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Start Free — 20 Leads</button>
+          <button class="btn-ghost">See How It Works</button>
+        </div>
+        <div class="hero-trust fu d4">
+          <span>Free forever</span>
+          <div class="htd"></div>
+          <span>No credit card</span>
+          <div class="htd"></div>
+          <span>20 leads included</span>
+        </div>
+      </div>
+
+      <!-- Right: Map Mockup -->
+      <div class="map-mockup fu d4">
+        <div class="map-frame">
+
+          <!-- Browser chrome -->
+          <div class="map-chrome">
+            <div class="chrome-dots">
+              <div class="chrome-dot" style="background:#ea4335;opacity:.6"></div>
+              <div class="chrome-dot" style="background:#fbbc04;opacity:.6"></div>
+              <div class="chrome-dot" style="background:#34a853;opacity:.6"></div>
+            </div>
+            <div class="chrome-addr">app.mapleads.io/dashboard</div>
+          </div>
+
+          <!-- Dark map canvas -->
+          <div class="map-bg">
+            <!-- Roads -->
+            <div class="map-road-h" style="top:33%"></div>
+            <div class="map-road-h" style="top:64%"></div>
+            <div class="map-road-v" style="left:26%"></div>
+            <div class="map-road-v" style="left:56%"></div>
+            <div class="map-road-v" style="left:78%"></div>
+
+            <!-- Building blocks -->
+            <div class="map-block" style="top:12%;left:30%;width:88px;height:52px;"></div>
+            <div class="map-block" style="top:11%;left:60%;width:68px;height:40px;"></div>
+            <div class="map-block" style="top:42%;left:5%; width:78px;height:48px;"></div>
+            <div class="map-block" style="top:42%;left:60%;width:108px;height:56px;"></div>
+            <div class="map-block" style="top:72%;left:29%;width:78px;height:44px;"></div>
+            <div class="map-block" style="top:72%;left:62%;width:72px;height:48px;"></div>
+
+            <!-- Water & park areas -->
+            <div style="position:absolute;top:14%;right:0;width:78px;height:48px;background:#152030;border-radius:3px;"></div>
+            <div style="position:absolute;bottom:8%;left:4%;width:88px;height:52px;background:#142014;border-radius:3px;"></div>
+
+            <!-- Map pins -->
+            <div class="map-pin" style="top:23%;left:31%;animation:dotPop .4s .2s ease both,pinBounce 4s 1s ease-in-out infinite">
+              <div class="map-pin-head" style="background:#ea4335"><div class="map-pin-dot"></div></div>
+              <div class="map-pin-tail" style="background:#ea4335"></div>
+              <div class="map-pin-label">Tony's Pizza</div>
+            </div>
+            <div class="map-pin" style="top:17%;left:62%;animation:dotPop .4s .4s ease both,pinBounce 5s 1.5s ease-in-out infinite">
+              <div class="map-pin-head" style="background:#1a73e8"><div class="map-pin-dot"></div></div>
+              <div class="map-pin-tail" style="background:#1a73e8"></div>
+              <div class="map-pin-label">Pro Plumbing</div>
+            </div>
+            <div class="map-pin" style="top:50%;left:17%;animation:dotPop .4s .6s ease both,pinBounce 4.5s 2s ease-in-out infinite">
+              <div class="map-pin-head" style="background:#34a853"><div class="map-pin-dot"></div></div>
+              <div class="map-pin-tail" style="background:#34a853"></div>
+              <div class="map-pin-label">Style Salon</div>
+            </div>
+            <div class="map-pin" style="top:46%;left:62%;animation:dotPop .4s .8s ease both">
+              <div class="map-pin-head" style="background:#fbbc04"><div class="map-pin-dot" style="background:rgba(0,0,0,.6)"></div></div>
+              <div class="map-pin-tail" style="background:#fbbc04"></div>
+              <div class="map-pin-label">City Dental</div>
+            </div>
+            <div class="map-pin" style="top:68%;left:42%;animation:dotPop .4s 1s ease both">
+              <div class="map-pin-head" style="background:#ea4335"><div class="map-pin-dot"></div></div>
+              <div class="map-pin-tail" style="background:#ea4335"></div>
+              <div class="map-pin-label">Bean &amp; Brew</div>
+            </div>
+
+            <!-- Search overlay -->
+            <div class="map-overlay">
+              <div class="map-search-row">
+                <input class="map-s-input" value="Restaurants in Austin, TX" readonly>
+                <div class="map-s-pill">12 found</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Result chips below map -->
+          <div class="map-results">
+            <div class="map-result-chip">
+              <div class="mrc-name">Tony's Pizza Co.</div>
+              <div class="mrc-badge-g">Website</div>
+            </div>
+            <div class="map-result-chip">
+              <div class="mrc-name">The Burger Lab</div>
+              <div class="mrc-badge-g">Website</div>
+            </div>
+            <div class="map-result-chip">
+              <div class="mrc-name">Fresh Bowl Cafe</div>
+              <div class="mrc-badge-n">No website</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating stat card -->
+        <div class="float-card" style="bottom:-14px;right:-14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:32px;height:32px;border-radius:8px;background:rgba(52,168,83,.15);border:1px solid rgba(52,168,83,.3);display:flex;align-items:center;justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2.5" stroke-linecap="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff;">24 leads found</div>
+            <div style="font-size:12px;color:#34a853;font-weight:600;">in 0:42 seconds</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Stats Bar ── -->
+  <div class="stats-bar" style="margin-top:72px;">
+    <div class="stats-bar-inner">
+      <div class="stat-item fu d1"><div class="stat-num"><span>2.4</span>M+</div><div class="stat-lbl">Leads Generated</div></div>
+      <div class="stat-item fu d2"><div class="stat-num"><span>12k</span>+</div><div class="stat-lbl">Active Users</div></div>
+      <div class="stat-item fu d3"><div class="stat-num"><span>94</span>%</div><div class="stat-lbl">Data Accuracy</div></div>
+      <div class="stat-item fu d4"><div class="stat-num">&lt;<span>60</span>s</div><div class="stat-lbl">Avg. Gen Time</div></div>
+    </div>
+  </div>
+
+  <!-- ── Features ── -->
+  <div id="features" style="background:var(--bg);">
+    <div class="section sec-center">
+      <div class="sec-eyebrow fu">Features</div>
+      <h2 class="sec-title fu d1">Built for local prospecting at scale</h2>
+      <p class="sec-sub fu d2">Everything you need to find, manage, and export local business contacts.</p>
+      <div class="features-grid">
+        <div class="feat-card fu d2">
+          <div class="feat-label">Search</div>
+          <h3>Map-Powered Search</h3>
+          <p>Pull real-time data from the world's largest local business database — any city, any category, instantly.</p>
+        </div>
+        <div class="feat-card fu d3">
+          <div class="feat-label">Data</div>
+          <h3>Verified Contact Data</h3>
+          <p>Get phone numbers, email addresses, and websites — verified and ready for immediate outreach.</p>
+        </div>
+        <div class="feat-card fu d4">
+          <div class="feat-label">Speed</div>
+          <h3>Results in Under 60s</h3>
+          <p>Our scraping engine delivers dozens of qualified leads in seconds. No waiting, no manual work.</p>
+        </div>
+        <div class="feat-card fu d2">
+          <div class="feat-label">Intelligence</div>
+          <h3>Rating &amp; Review Data</h3>
+          <p>See star ratings and review counts to prioritize high-reputation businesses or find untapped markets.</p>
+        </div>
+        <div class="feat-card fu d3">
+          <div class="feat-label">Export</div>
+          <h3>One-Click CSV Export</h3>
+          <p>Download all leads to CSV and drop them straight into any CRM, email tool, or spreadsheet.</p>
+        </div>
+        <div class="feat-card fu d4">
+          <div class="feat-label">Freshness</div>
+          <h3>Live Data Every Time</h3>
+          <p>No stale databases. We scrape live — always up-to-date contact info and business details.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Pricing ── -->
+  <div id="pricing" class="pricing-wrap">
+    <div class="section sec-center">
+      <div class="sec-eyebrow fu">Pricing</div>
+      <h2 class="sec-title fu d1">Simple, honest pricing</h2>
+      <p class="sec-sub fu d2">Start for free. Upgrade only when you need more.</p>
+      <div class="pricing-grid fu d2">
+
+        <!-- Free plan -->
+        <div class="price-card">
+          <div class="price-plan-name">Free</div>
+          <div class="price-dollar">$0</div>
+          <div class="price-period">forever, no card needed</div>
+          <div class="price-desc">Perfect for testing and getting started with local lead gen.</div>
+          <div class="price-divider"></div>
+          <ul class="pf-list">
+            <li class="pf-item"><div class="pf-check">✓</div> 20 total leads lifetime</li>
+            <li class="pf-item"><div class="pf-check">✓</div> Email &amp; phone data</li>
+            <li class="pf-item"><div class="pf-check">✓</div> CSV export</li>
+            <li class="pf-item"><div class="pf-dash">—</div> <span style="color:var(--text3)">Unlimited searches</span></li>
+            <li class="pf-item"><div class="pf-dash">—</div> <span style="color:var(--text3)">Priority speed</span></li>
+          </ul>
+          <button class="price-btn-free" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Get Started Free</button>
+        </div>
+
+        <!-- Pro plan -->
+        <div class="price-card pro">
+          <div class="pro-badge-top">Most Popular</div>
+          <div class="price-plan-name pro">Pro</div>
+          <div class="price-dollar pro">$49</div>
+          <div class="price-period">/month · cancel anytime</div>
+          <div class="price-desc">For professionals and agencies who need leads every day.</div>
+          <div class="price-divider"></div>
+          <ul class="pf-list">
+            <li class="pf-item"><div class="pf-check">✓</div> <strong style="color:#fff;">Unlimited</strong> leads</li>
+            <li class="pf-item"><div class="pf-check">✓</div> Email, phone &amp; website</li>
+            <li class="pf-item"><div class="pf-check">✓</div> CSV export</li>
+            <li class="pf-item"><div class="pf-check">✓</div> Unlimited daily searches</li>
+            <li class="pf-item"><div class="pf-check">✓</div> 3× priority scraping speed</li>
+            <li class="pf-item"><div class="pf-check">✓</div> Priority support</li>
+          </ul>
+          <button class="price-btn-pro" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Start Pro Trial</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Testimonials ── -->
+  <div id="testimonials" style="background:var(--bg);">
+    <div class="section sec-center">
+      <div class="sec-eyebrow fu">Reviews</div>
+      <h2 class="sec-title fu d1">Trusted by <span style="color:var(--blue)">growth teams</span></h2>
+      <div class="testi-grid fu d2">
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-text">"MapLeads cut my prospecting time by 80%. I generate a full week of leads in under five minutes. Complete game-changer."</p>
+          <div class="testi-author">
+            <div class="testi-av">MC</div>
+            <div><div class="testi-name">Marcus Chen</div><div class="testi-role">Marketing Agency Owner</div></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-text">"The data quality is remarkable. Real emails that actually work. My cold outreach reply rate tripled within two weeks."</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#34a853">SW</div>
+            <div><div class="testi-name">Sarah Williams</div><div class="testi-role">B2B Sales Rep</div></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-text">"Paid for Pro in the first week. The ROI is immediate. I just type in a city and get a full prospect list in seconds."</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#ea4335">JR</div>
+            <div><div class="testi-name">Jake Rodriguez</div><div class="testi-role">Freelance Consultant</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CTA Banner ── -->
+  <div class="cta-banner">
+    <h2>Ready to fill your pipeline?</h2>
+    <p>Join 12,000+ professionals generating leads with MapLeads.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-white" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Start Free — No Card Needed</button>
+      <button class="btn-outline-white">View Pricing</button>
+    </div>
+    <div style="margin-top:16px;font-size:12px;color:rgba(255,255,255,.35);">Free plan includes 20 leads · Upgrade anytime</div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <footer class="g-footer">
+    <div style="display:flex;align-items:center;gap:9px;">
+      <div class="g-logo-mark" style="width:26px;height:26px;">
+        <svg viewBox="0 0 24 24" width="13" height="13">
+          <circle cx="12" cy="10" r="4"/>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        </svg>
+      </div>
+      <span style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;color:#fff;">Map<span style="color:var(--blue)">Leads</span></span>
+    </div>
+    <div class="gf-copy">© 2024 MapLeads. All rights reserved.</div>
+    <div class="gf-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Support</a>
+      <a href="#">Status</a>
+    </div>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     DASHBOARD
+══════════════════════════════════════════════════════════ -->
+<div id="view-dashboard" class="view" style="padding-top:48px;">
+  <!-- Sidebar -->
+  <div class="db-sidebar">
+    <div class="db-sb-logo">
+      <a class="g-logo" href="#" onclick="switchView('landing',document.querySelectorAll('.ptab')[0]);return false;">
+        <div class="g-logo-mark" style="width:28px;height:28px;">
+          <svg viewBox="0 0 24 24" width="14" height="14">
+            <circle cx="12" cy="10" r="4"/>
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          </svg>
+        </div>
+        <span class="g-logo-text" style="font-size:15px;">Map<span>Leads</span></span>
+      </a>
+    </div>
+    <nav class="db-sb-nav">
+      <div class="db-nav-item active" onclick="this.parentNode.querySelectorAll('.db-nav-item').forEach(n=>n.classList.remove('active'));this.classList.add('active')">
+        Dashboard <div class="db-nav-dot"></div>
+      </div>
+      <div class="db-nav-item" onclick="switchView('billing',document.querySelectorAll('.ptab')[2])">
+        Billing
+      </div>
+      <div class="db-nav-item" onclick="switchView('landing',document.querySelectorAll('.ptab')[0])">
+        Home
+      </div>
+    </nav>
+    <div class="db-sb-footer">
+      <div class="db-user-chip">
+        <div class="db-av">AJ</div>
+        <div>
+          <div class="db-uname">Alex Johnson</div>
+          <div class="db-uplan">Free Plan</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <!-- Topbar -->
+    <div class="db-topbar">
+      <div class="db-breadcrumb">
+        <span>MapLeads</span>
+        <span class="db-breadcrumb-sep">›</span>
+        <span class="db-breadcrumb-sub">Dashboard</span>
+      </div>
+      <div class="db-topbar-right">
+        <div class="db-notif">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border:1px solid var(--border);border-radius:8px;cursor:pointer;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+          <div class="db-av" style="width:28px;height:28px;font-size:11px;">AJ</div>
+          <div>
+            <div class="db-uname">Alex Johnson</div>
+            <div class="db-uplan">Free Plan</div>
+          </div>
+          <span style="color:var(--text3);font-size:11px;margin-left:4px;">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page body -->
+    <div class="db-main">
+      <div class="db-inner">
+        <div class="db-page-title">Lead Generator</div>
+        <div class="db-page-sub">Find local business contacts in any city, instantly.</div>
+
+        <!-- Stat cards -->
+        <div class="stats-cards">
+          <div class="stat-c"><div class="stat-c-label">Total Leads</div><div class="stat-c-val" id="sc-total" style="color:var(--blue)">0</div></div>
+          <div class="stat-c"><div class="stat-c-label">Cities</div><div class="stat-c-val" id="sc-cities" style="color:var(--blue)">0</div></div>
+          <div class="stat-c"><div class="stat-c-label">Categories</div><div class="stat-c-val" id="sc-cats" style="color:var(--blue)">0</div></div>
+          <div class="stat-c"><div class="stat-c-label">Free Leads Left</div><div class="stat-c-val" id="sc-left" style="color:#34a853">20</div></div>
+        </div>
+
+        <!-- Search card -->
+        <div class="search-card">
+          <div class="search-card-title">Generate New Leads</div>
+          <div class="search-card-sub" id="search-sub">Search any business category in any city to pull verified contacts.</div>
+          <div class="search-row">
+            <div class="si-wrap">
+              <select class="g-select" id="biz-select">
+                <option value="" disabled selected>Business type...</option>
+                <option>Restaurants</option>
+                <option>Plumbers</option>
+                <option>Dentists</option>
+                <option>Electricians</option>
+                <option>HVAC</option>
+                <option>Lawyers</option>
+                <option>Real Estate Agents</option>
+                <option>Coffee Shops</option>
+                <option>Hair Salons</option>
+                <option>Auto Repair</option>
+                <option>Gyms &amp; Fitness</option>
+              </select>
+            </div>
+            <div class="si-wrap">
+              <input class="g-input" id="city-input" type="text" placeholder="City (e.g. Austin, TX)">
+            </div>
+            <button class="gen-btn" id="gen-btn" onclick="generateLeads()">
+              <span class="spin-hide" id="btn-label">Generate Leads</span>
+              <div class="spinner"></div>
+            </button>
+          </div>
+          <div class="err-bar" id="err-bar">
+            <span id="err-text">Please fill in all fields.</span>
+          </div>
+          <div class="usage-row">
+            <span class="usage-label">Free plan usage</span>
+            <div class="usage-track"><div class="usage-fill" id="usage-fill" style="width:0%"></div></div>
+            <span class="usage-count" id="usage-count">0 / 20 leads</span>
+            <a class="upgrade-hint" onclick="openModal()">Upgrade</a>
+          </div>
+        </div>
+
+        <!-- Table header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div>
+            <span style="font-size:15px;font-weight:700;color:#fff;" id="table-headline">Your Leads</span>
+            <span style="font-size:13px;color:var(--text3);margin-left:8px;" id="table-sub"></span>
+          </div>
+          <button class="export-btn" id="export-btn" onclick="exportCSV()" disabled>Export CSV</button>
+        </div>
+
+        <!-- Leads table container -->
+        <div class="leads-wrap" id="leads-container">
+          <div class="empty-state">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </div>
+            <div class="empty-title">No leads yet</div>
+            <div class="empty-sub">Choose a business type and city above, then click Generate Leads.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     BILLING
+══════════════════════════════════════════════════════════ -->
+<div id="view-billing" class="view" style="padding-top:48px;">
+  <!-- Sidebar -->
+  <div class="db-sidebar">
+    <div class="db-sb-logo">
+      <a class="g-logo" href="#" onclick="switchView('landing',document.querySelectorAll('.ptab')[0]);return false;">
+        <div class="g-logo-mark" style="width:28px;height:28px;">
+          <svg viewBox="0 0 24 24" width="14" height="14">
+            <circle cx="12" cy="10" r="4"/>
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          </svg>
+        </div>
+        <span class="g-logo-text" style="font-size:15px;">Map<span>Leads</span></span>
+      </a>
+    </div>
+    <nav class="db-sb-nav">
+      <div class="db-nav-item" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Dashboard</div>
+      <div class="db-nav-item active">Billing <div class="db-nav-dot"></div></div>
+      <div class="db-nav-item" onclick="switchView('landing',document.querySelectorAll('.ptab')[0])">Home</div>
+    </nav>
+    <div class="db-sb-footer">
+      <div class="db-user-chip">
+        <div class="db-av">AJ</div>
+        <div>
+          <div class="db-uname">Alex Johnson</div>
+          <div class="db-uplan">Free Plan</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <!-- Topbar -->
+    <div class="db-topbar">
+      <div class="db-breadcrumb">
+        <span>MapLeads</span>
+        <span class="db-breadcrumb-sep">›</span>
+        <span class="db-breadcrumb-sub">Billing &amp; Plan</span>
+      </div>
+      <div class="db-topbar-right">
+        <div class="db-notif">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border:1px solid var(--border);border-radius:8px;cursor:pointer;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+          <div class="db-av" style="width:28px;height:28px;font-size:11px;">AJ</div>
+          <div>
+            <div class="db-uname">Alex Johnson</div>
+            <div class="db-uplan">Free Plan</div>
+          </div>
+          <span style="color:var(--text3);font-size:11px;margin-left:4px;">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page body -->
+    <div class="db-main">
+      <div class="db-inner">
+        <div class="db-page-title">Billing &amp; Plan</div>
+        <div class="db-page-sub">Manage your subscription and account usage.</div>
+
+        <div class="billing-layout">
+          <!-- Left column -->
+          <div>
+            <!-- Current plan card -->
+            <div class="billing-card">
+              <div class="plan-header-row">
+                <div>
+                  <div class="plan-label">Current Plan</div>
+                  <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
+                    <div class="plan-name-big">Free</div>
+                    <div class="plan-badge">Active</div>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="plan-price-big">$0</div>
+                  <div class="plan-price-sub">/ forever</div>
+                </div>
+              </div>
+              <div class="usage-big">
+                <div class="usage-big-labels">
+                  <span style="font-size:13px;font-weight:600;color:var(--text);">Lead Usage</span>
+                  <span style="font-size:13px;font-weight:700;color:#fff;">9 / 20 used</span>
+                </div>
+                <div class="usage-big-track"><div class="usage-big-fill"></div></div>
+                <div style="font-size:12px;color:var(--text2);margin-top:7px;">11 free leads remaining. Upgrade for unlimited access.</div>
+              </div>
+              <div class="plan-detail-grid">
+                <div class="plan-detail"><div class="pd-label">Leads</div><div class="pd-value">20 lifetime</div></div>
+                <div class="plan-detail"><div class="pd-label">Billing</div><div class="pd-value">None</div></div>
+                <div class="plan-detail"><div class="pd-label">Status</div><div class="pd-value" style="color:#34a853;">Active</div></div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn-blue" style="border-radius:8px;" onclick="openModal()">Upgrade to Pro</button>
+                <button class="manage-btn">Manage Account</button>
+              </div>
+            </div>
+
+            <!-- Pro comparison card -->
+            <div class="billing-card pro-border" style="position:relative;overflow:hidden;">
+              <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--blue);"></div>
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;">
+                <div>
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);margin-bottom:6px;">Pro Plan</div>
+                  <div style="font-size:28px;font-weight:800;color:var(--blue);font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.04em;">$49<span style="font-size:15px;color:var(--text3);font-weight:500;">/month</span></div>
+                </div>
+                <div class="plan-badge">Most Popular</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#ccc;font-weight:500;"><div class="pf-check">✓</div> Unlimited leads</div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#ccc;font-weight:500;"><div class="pf-check">✓</div> Unlimited searches</div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#ccc;font-weight:500;"><div class="pf-check">✓</div> 3× priority speed</div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#ccc;font-weight:500;"><div class="pf-check">✓</div> All data fields</div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#ccc;font-weight:500;"><div class="pf-check">✓</div> CSV export</div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#ccc;font-weight:500;"><div class="pf-check">✓</div> Priority support</div>
+              </div>
+              <button class="price-btn-pro" onclick="openModal()">Upgrade to Pro — $49/month</button>
+              <div style="text-align:center;font-size:12px;color:var(--text3);margin-top:10px;">Cancel anytime · Secure checkout via Stripe</div>
+            </div>
+          </div>
+
+          <!-- Right column -->
+          <div>
+            <!-- Payment history -->
+            <div class="billing-card" style="margin-bottom:14px;">
+              <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:14px;">Payment History</div>
+              <div style="text-align:center;padding:32px 16px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
+                </div>
+                <div style="font-size:13px;color:var(--text3);">No invoices yet.</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:4px;opacity:.6;">Invoices appear after first payment.</div>
+              </div>
+            </div>
+
+            <!-- Help card -->
+            <div class="billing-card">
+              <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:5px;">Need help?</div>
+              <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.55;">Questions about billing? Our support team is here.</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;" onmouseover="this.style.background='var(--bg3)';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='var(--text2)'">Email Support</button>
+                <button style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;" onmouseover="this.style.background='var(--bg3)';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='var(--text2)'">View FAQs</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     UPGRADE MODAL
+══════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+    </div>
+    <div class="modal-title">Upgrade to Pro</div>
+    <div class="modal-sub">You've reached the <strong style="color:#fff;">20-lead free limit</strong>. Upgrade to Pro for unlimited lead generation with no caps.</div>
+    <div class="modal-feats">
+      <div class="modal-feats-label">Everything in Pro</div>
+      <div class="modal-feat"><div class="mf-check">✓</div> Unlimited leads — no caps, ever</div>
+      <div class="modal-feat"><div class="mf-check">✓</div> All data: email, phone, website</div>
+      <div class="modal-feat"><div class="mf-check">✓</div> Unlimited daily searches</div>
+      <div class="modal-feat"><div class="mf-check">✓</div> 3× faster priority scraping</div>
+      <div class="modal-feat"><div class="mf-check">✓</div> Priority customer support</div>
+    </div>
+    <button class="modal-upgrade-btn" onclick="closeModal();switchView('billing',document.querySelectorAll('.ptab')[2])">
+      Upgrade to Pro — $49/month
+    </button>
+    <button class="modal-skip" onclick="closeModal()">Maybe later</button>
+    <div style="text-align:center;font-size:12px;color:var(--text3);margin-top:12px;">Cancel anytime · Secure checkout via Stripe</div>
+  </div>
+</div>
+
+<!-- Script -->
+<script src="script.js"></script>
+</body>
+</html>
