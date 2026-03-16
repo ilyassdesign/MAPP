@@ -10,17 +10,887 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css">
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Favicon (SVG inline as data URI) -->
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<style>
+/* ═══════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #0a0a0a;
+  color: #e8e8e8;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+h1,h2,h3,h4,h5 { font-family: 'Plus Jakarta Sans', sans-serif; }
+::selection { background: rgba(26,115,232,.35); color: #fff; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════ */
+:root {
+  --bg:        #0a0a0a;
+  --bg2:       #111111;
+  --bg3:       #161616;
+  --bg4:       #1c1c1c;
+  --border:    #222222;
+  --border2:   #2e2e2e;
+  --blue:      #1a73e8;
+  --blue-lt:   #4285f4;
+  --blue-dim:  rgba(26,115,232,.12);
+  --blue-mid:  rgba(26,115,232,.22);
+  --text:      #e8e8e8;
+  --text2:     #9a9a9a;
+  --text3:     #666666;
+  --green:     #34a853;
+  --green-dim: rgba(52,168,83,.14);
+  --red:       #ea4335;
+}
+
+/* ═══════════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════════ */
+@keyframes fadeUp     { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pinBounce  { 0%,100%{transform:translateY(0) scale(1)} 35%{transform:translateY(-10px) scale(1.08)} 65%{transform:translateY(-3px) scale(1.02)} }
+@keyframes pulse-ring { 0%{transform:scale(1);opacity:.6} 100%{transform:scale(2.4);opacity:0} }
+@keyframes slideRow   { from{opacity:0;transform:translateX(-5px)} to{opacity:1;transform:translateX(0)} }
+@keyframes spin       { to{transform:rotate(360deg)} }
+@keyframes dotPop     { 0%{transform:scale(0);opacity:0} 65%{transform:scale(1.25);opacity:1} 100%{transform:scale(1);opacity:1} }
+
+.fu  { opacity:0; animation: fadeUp .6s ease both; }
+.d0  { animation-delay:.00s } .d1 { animation-delay:.08s }
+.d2  { animation-delay:.15s } .d3 { animation-delay:.23s }
+.d4  { animation-delay:.33s } .d5 { animation-delay:.44s }
+
+/* ═══════════════════════════════════════════════════
+   VIEW SYSTEM
+═══════════════════════════════════════════════════ */
+.view { display: none; }
+.view.active { display: block; }
+#view-dashboard.active, #view-billing.active {
+  display: flex;
+  min-height: calc(100vh - 48px);
+}
+
+/* ═══════════════════════════════════════════════════
+   PREVIEW BAR
+═══════════════════════════════════════════════════ */
+.pbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: #0a0a0a; border-bottom: 1px solid #222;
+  display: flex; align-items: center; gap: 3px;
+  padding: 7px 16px; overflow-x: auto;
+}
+.pbar-label {
+  font-size: 10px; font-weight: 700; color: #444;
+  text-transform: uppercase; letter-spacing: .1em;
+  margin-right: 10px; font-family: 'DM Sans', sans-serif;
+  white-space: nowrap; flex-shrink: 0;
+}
+.ptab {
+  padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  cursor: pointer; color: #555; border: 1px solid transparent;
+  font-family: 'DM Sans', sans-serif; transition: all .15s; white-space: nowrap; flex-shrink: 0;
+}
+.ptab:hover  { color: #aaa; background: rgba(255,255,255,.05); }
+.ptab.active { color: #fff; background: var(--blue); border-color: var(--blue); }
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════ */
+.g-nav {
+  position: sticky; top: 48px; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; height: 60px;
+  background: rgba(10,10,10,.92); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.g-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.g-logo-mark {
+  width: 30px; height: 30px; border-radius: 7px;
+  background: var(--blue); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.g-logo-mark svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; }
+.g-logo-text { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 17px; color: #fff; letter-spacing: -.02em; }
+.g-logo-text span { color: var(--blue); }
+.g-nav-links { display: flex; gap: 2px; }
+.gnl { padding: 7px 14px; border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--text2); text-decoration: none; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.gnl:hover { background: var(--bg3); color: var(--text); }
+.g-nav-actions { display: flex; gap: 10px; align-items: center; }
+
+/* Hamburger menu (mobile) */
+.nav-hamburger {
+  display: none;
+  flex-direction: column; gap: 5px; cursor: pointer; padding: 4px;
+}
+.nav-hamburger span { display: block; width: 22px; height: 2px; background: var(--text2); border-radius: 2px; transition: all .2s; }
+.nav-mobile-menu {
+  display: none;
+  position: fixed; top: 108px; left: 0; right: 0;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 16px; z-index: 99; flex-direction: column; gap: 8px;
+}
+.nav-mobile-menu.open { display: flex; }
+.nav-mobile-link {
+  padding: 12px 16px; border-radius: 8px; font-size: 15px; font-weight: 500;
+  color: var(--text2); text-decoration: none; transition: all .15s;
+}
+.nav-mobile-link:hover { background: var(--bg3); color: var(--text); }
+
+/* ═══════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════ */
+.btn-ghost {
+  padding: 8px 18px; border-radius: 7px; font-size: 14px; font-weight: 600;
+  color: var(--blue); border: 1px solid var(--border2); background: transparent;
+  cursor: pointer; transition: all .18s; font-family: 'DM Sans', sans-serif;
+}
+.btn-ghost:hover { background: var(--blue-dim); border-color: var(--blue); }
+.btn-blue {
+  padding: 8px 20px; border-radius: 7px; font-size: 14px; font-weight: 600;
+  color: #fff; background: var(--blue); border: none; cursor: pointer;
+  transition: all .18s; font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 2px 12px rgba(26,115,232,.35);
+}
+.btn-blue:hover  { background: #1565d8; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(26,115,232,.5); }
+.btn-blue:active { transform: none; }
+.btn-white {
+  padding: 13px 28px; border-radius: 8px; font-size: 15px; font-weight: 700;
+  color: var(--blue); background: #fff; border: none; cursor: pointer;
+  transition: all .18s; box-shadow: 0 2px 12px rgba(0,0,0,.3); font-family: 'DM Sans', sans-serif;
+}
+.btn-white:hover { background: #f0f4ff; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+.btn-outline-white {
+  padding: 13px 28px; border-radius: 8px; font-size: 15px; font-weight: 700;
+  color: #fff; background: transparent; border: 1.5px solid rgba(255,255,255,.3);
+  cursor: pointer; transition: all .18s; font-family: 'DM Sans', sans-serif;
+}
+.btn-outline-white:hover { border-color: #fff; background: rgba(255,255,255,.08); }
+
+/* ═══════════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════════ */
+.hero { padding: 88px 0 0; overflow: hidden; }
+.hero-inner {
+  max-width: 1160px; margin: 0 auto; padding: 0 40px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 14px 5px 9px; border-radius: 20px;
+  background: var(--blue-dim); border: 1px solid rgba(26,115,232,.3);
+  margin-bottom: 22px;
+}
+.hero-badge-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--blue); position: relative; flex-shrink: 0;
+}
+.hero-badge-dot::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  background: var(--blue); animation: pulse-ring 2s ease-out infinite;
+}
+.hero-badge span { font-size: 12px; font-weight: 600; color: var(--blue); }
+.hero h1 {
+  font-size: clamp(28px, 4vw, 54px); font-weight: 800;
+  line-height: 1.1; letter-spacing: -.03em; color: #fff; margin-bottom: 18px;
+}
+.hero h1 em { font-style: normal; color: var(--blue); }
+.hero p { font-size: 17px; color: var(--text2); line-height: 1.7; margin-bottom: 32px; max-width: 460px; }
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 36px; }
+.hero-cta .btn-blue  { padding: 12px 26px; font-size: 15px; border-radius: 8px; }
+.hero-cta .btn-ghost { padding: 12px 26px; font-size: 15px; border-radius: 8px; }
+.hero-trust { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text3); font-weight: 500; flex-wrap: wrap; }
+.htd { width: 3px; height: 3px; border-radius: 50%; background: var(--border2); }
+
+/* ═══════════════════════════════════════════════════
+   MAP MOCKUP
+═══════════════════════════════════════════════════ */
+.map-mockup { position: relative; padding-bottom: 22px; padding-right: 22px; }
+.map-frame {
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border2);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 4px 16px rgba(0,0,0,.4);
+}
+.map-chrome {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 10px 14px; display: flex; align-items: center; gap: 8px;
+}
+.chrome-dots { display: flex; gap: 5px; }
+.chrome-dot  { width: 10px; height: 10px; border-radius: 50%; }
+.chrome-addr {
+  flex: 1; margin: 0 10px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; padding: 4px 10px; font-size: 11px; color: var(--text3);
+  font-family: 'DM Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.map-bg {
+  width: 100%; height: 250px; position: relative; overflow: hidden;
+  background: #131a24;
+}
+.map-road-h { position: absolute; height: 2px; background: #1e2836; left: 0; right: 0; }
+.map-road-v { position: absolute; width: 2px; background: #1e2836; top: 0; bottom: 0; }
+.map-block  { position: absolute; background: #1a2233; border-radius: 3px; }
+.map-pin    { position: absolute; display: flex; flex-direction: column; align-items: center; }
+.map-pin-head {
+  width: 24px; height: 24px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+}
+.map-pin-dot  { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.9); transform: rotate(45deg); }
+.map-pin-tail { width: 2px; height: 7px; margin-top: -1px; border-radius: 0 0 2px 2px; }
+.map-pin-label {
+  margin-top: 4px; background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 4px; padding: 2px 7px; font-size: 9px; font-weight: 700;
+  color: #ddd; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+.map-overlay {
+  position: absolute; top: 10px; left: 10px; right: 10px;
+  background: var(--bg2); border-radius: 8px; padding: 9px 12px;
+  border: 1px solid var(--border2); box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+.map-search-row { display: flex; align-items: center; gap: 8px; }
+.map-s-input {
+  flex: 1; border: none; outline: none; font-size: 12px; color: #ddd;
+  font-family: 'DM Sans', sans-serif; font-weight: 500; background: transparent;
+  min-width: 0;
+}
+.map-s-pill {
+  padding: 3px 9px; background: var(--blue); border-radius: 4px;
+  font-size: 11px; font-weight: 700; color: #fff; white-space: nowrap; flex-shrink: 0;
+}
+.map-results {
+  padding: 9px 12px; background: var(--bg2); border-top: 1px solid var(--border);
+  display: flex; gap: 8px; overflow-x: auto;
+}
+.map-result-chip {
+  flex-shrink: 0; padding: 7px 11px; background: var(--bg3);
+  border: 1px solid var(--border2); border-radius: 8px;
+}
+.mrc-name    { font-size: 11px; font-weight: 700; color: #ddd; margin-bottom: 2px; }
+.mrc-badge-g { font-size: 10px; font-weight: 600; color: var(--green); }
+.mrc-badge-n { font-size: 10px; font-weight: 600; color: var(--text3); }
+.float-card  {
+  position: absolute; background: var(--bg2); border-radius: 10px;
+  padding: 11px 14px; border: 1px solid var(--border2);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+
+/* ═══════════════════════════════════════════════════
+   STATS BAR
+═══════════════════════════════════════════════════ */
+.stats-bar       { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 32px 40px; }
+.stats-bar-inner { max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); }
+.stat-item       { text-align: center; padding: 0 20px; position: relative; }
+.stat-item:not(:last-child)::after { content: ''; position: absolute; right: 0; top: 20%; bottom: 20%; width: 1px; background: var(--border); }
+.stat-num        { font-size: 38px; font-weight: 800; letter-spacing: -.04em; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; }
+.stat-num span   { color: var(--blue); }
+.stat-lbl        { font-size: 13px; color: var(--text2); margin-top: 4px; font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════
+   SECTIONS
+═══════════════════════════════════════════════════ */
+.section    { padding: 80px 40px; max-width: 1160px; margin: 0 auto; }
+.sec-center { text-align: center; }
+.sec-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--blue); margin-bottom: 14px;
+}
+.sec-eyebrow::before,
+.sec-eyebrow::after { content: ''; width: 24px; height: 1px; background: rgba(26,115,232,.4); }
+.sec-title { font-size: clamp(22px, 3.5vw, 40px); font-weight: 800; letter-spacing: -.03em; color: #fff; margin-bottom: 14px; line-height: 1.12; }
+.sec-sub   { font-size: 16px; color: var(--text2); max-width: 500px; margin: 0 auto 52px; line-height: 1.65; }
+
+/* ═══════════════════════════════════════════════════
+   FEATURES
+═══════════════════════════════════════════════════ */
+.features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.feat-card {
+  padding: 28px 24px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--bg2);
+  transition: all .22s; cursor: default; text-align: left;
+}
+.feat-card:hover { border-color: rgba(26,115,232,.4); background: var(--bg3); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(26,115,232,.08); }
+.feat-label {
+  display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--blue); background: var(--blue-dim);
+  border-radius: 4px; padding: 3px 8px; margin-bottom: 14px;
+}
+.feat-card h3 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+.feat-card p  { font-size: 13px; color: var(--text2); line-height: 1.65; }
+
+/* ═══════════════════════════════════════════════════
+   PRICING
+═══════════════════════════════════════════════════ */
+.pricing-wrap { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 820px; margin: 0 auto; }
+.price-card {
+  background: var(--bg3); border-radius: 18px; padding: 36px 32px;
+  border: 1px solid var(--border); position: relative; transition: all .2s;
+}
+.price-card:hover { border-color: var(--border2); }
+.price-card.pro   { border: 1.5px solid var(--blue); background: linear-gradient(160deg, rgba(26,115,232,.07) 0%, var(--bg3) 60%); box-shadow: 0 4px 32px rgba(26,115,232,.12); }
+.pro-badge-top {
+  position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+  background: var(--blue); color: #fff; padding: 4px 18px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; white-space: nowrap;
+}
+.price-plan-name      { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text2); margin-bottom: 10px; }
+.price-plan-name.pro  { color: var(--blue); }
+.price-dollar         { font-size: 52px; font-weight: 800; letter-spacing: -.04em; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1; }
+.price-dollar.pro     { color: var(--blue); }
+.price-period         { font-size: 14px; color: var(--text3); margin-top: 4px; margin-bottom: 6px; font-weight: 500; }
+.price-desc           { font-size: 13px; color: var(--text2); margin-bottom: 22px; line-height: 1.55; }
+.price-divider        { height: 1px; background: var(--border); margin-bottom: 20px; }
+.pf-list              { margin-bottom: 28px; list-style: none; }
+.pf-item              { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 11px; font-size: 14px; color: #ccc; font-weight: 500; }
+.pf-check { width: 17px; height: 17px; border-radius: 50%; background: rgba(52,168,83,.18); color: var(--green); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.pf-dash  { width: 17px; height: 17px; border-radius: 50%; background: var(--bg4); color: var(--text3); font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.price-btn-free {
+  width: 100%; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  border: 1.5px solid var(--border2); background: transparent; color: var(--blue);
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
+}
+.price-btn-free:hover { background: var(--blue-dim); border-color: var(--blue); }
+.price-btn-pro {
+  width: 100%; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  border: none; background: var(--blue); color: #fff;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
+  box-shadow: 0 2px 14px rgba(26,115,232,.4);
+}
+.price-btn-pro:hover { background: #1565d8; box-shadow: 0 4px 22px rgba(26,115,232,.55); transform: translateY(-1px); }
+
+/* ═══════════════════════════════════════════════════
+   TESTIMONIALS
+═══════════════════════════════════════════════════ */
+.testi-grid  { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.testi-card  { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 24px; transition: all .2s; text-align: left; }
+.testi-card:hover { border-color: var(--border2); }
+.testi-stars  { color: #fbbc04; font-size: 14px; letter-spacing: 1px; margin-bottom: 12px; }
+.testi-text   { font-size: 14px; color: var(--text2); line-height: 1.65; margin-bottom: 18px; font-style: italic; }
+.testi-author { display: flex; align-items: center; gap: 10px; }
+.testi-av     { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--blue); flex-shrink: 0; }
+.testi-name   { font-size: 13px; font-weight: 700; color: #fff; }
+.testi-role   { font-size: 12px; color: var(--text3); }
+
+/* ═══════════════════════════════════════════════════
+   CTA BANNER & FOOTER
+═══════════════════════════════════════════════════ */
+.cta-banner {
+  background: linear-gradient(135deg, #0d1f3c 0%, #122b52 50%, #0d1f3c 100%);
+  padding: 72px 40px; text-align: center;
+  border-top: 1px solid rgba(26,115,232,.3); border-bottom: 1px solid rgba(26,115,232,.3);
+}
+.cta-banner h2 { font-size: clamp(24px, 4vw, 44px); font-weight: 800; color: #fff; letter-spacing: -.03em; margin-bottom: 14px; }
+.cta-banner p  { font-size: 17px; color: rgba(255,255,255,.55); margin-bottom: 30px; }
+.g-footer   { background: var(--bg2); border-top: 1px solid var(--border); padding: 26px 40px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.gf-copy    { font-size: 13px; color: var(--text3); }
+.gf-links   { display: flex; gap: 24px; flex-wrap: wrap; }
+.gf-links a { font-size: 13px; color: var(--text3); text-decoration: none; transition: color .15s; }
+.gf-links a:hover { color: var(--blue); }
+
+/* ═══════════════════════════════════════════════════
+   DASHBOARD SIDEBAR
+═══════════════════════════════════════════════════ */
+.db-sidebar  { width: 220px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+.db-sb-logo  { padding: 18px 16px 14px; border-bottom: 1px solid var(--border); }
+.db-sb-nav   { flex: 1; padding: 10px 8px; }
+.db-nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all .15s; margin-bottom: 2px; text-decoration: none; }
+.db-nav-item:hover  { background: var(--bg3); color: var(--text); }
+.db-nav-item.active { background: var(--blue-dim); color: var(--blue); font-weight: 600; border: 1px solid rgba(26,115,232,.25); }
+.db-nav-dot         { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; margin-left: auto; opacity: .5; display: none; }
+.db-nav-item.active .db-nav-dot { display: block; opacity: 1; }
+.db-sb-footer       { padding: 14px; border-top: 1px solid var(--border); }
+.db-user-chip       { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+.db-user-chip:hover { background: var(--bg3); }
+.db-av    { width: 32px; height: 32px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; flex-shrink: 0; }
+.db-uname { font-size: 13px; font-weight: 600; color: #fff; }
+.db-uplan { font-size: 11px; color: var(--text3); font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════
+   DASHBOARD TOPBAR
+═══════════════════════════════════════════════════ */
+.db-topbar        { height: 58px; border-bottom: 1px solid var(--border); background: var(--bg2); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+.db-breadcrumb    { font-size: 15px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+.db-breadcrumb-sep { color: var(--border2); }
+.db-breadcrumb-sub { color: var(--text2); font-weight: 400; }
+.db-topbar-right  { display: flex; align-items: center; gap: 10px; }
+.db-notif         { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; transition: all .15s; color: var(--text2); flex-shrink: 0; }
+.db-notif:hover   { background: var(--bg3); border-color: var(--border2); }
+.db-notif svg     { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+/* ═══════════════════════════════════════════════════
+   DASHBOARD MAIN
+═══════════════════════════════════════════════════ */
+.db-main         { flex: 1; overflow-y: auto; background: var(--bg); }
+.db-inner        { padding: 28px 24px; }
+.db-page-title   { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -.03em; margin-bottom: 4px; }
+.db-page-sub     { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+
+/* ═══════════════════════════════════════════════════
+   STAT CARDS
+═══════════════════════════════════════════════════ */
+.stats-cards  { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+.stat-c       { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; transition: all .2s; }
+.stat-c:hover { border-color: rgba(26,115,232,.3); }
+.stat-c-label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.stat-c-val   { font-size: 28px; font-weight: 800; letter-spacing: -.04em; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+/* ═══════════════════════════════════════════════════
+   SEARCH CARD
+═══════════════════════════════════════════════════ */
+.search-card       { background: var(--bg2); border-radius: 14px; border: 1px solid var(--border); padding: 22px; margin-bottom: 20px; }
+.search-card-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.search-card-sub   { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+.search-row        { display: flex; gap: 10px; flex-wrap: wrap; }
+.si-wrap           { flex: 1; min-width: 140px; }
+.g-input {
+  width: 100%; padding: 11px 14px;
+  border-radius: 28px; border: 1.5px solid var(--border2);
+  font-size: 14px; font-weight: 500; color: #fff;
+  background: var(--bg3); outline: none;
+  transition: all .2s; font-family: 'DM Sans', sans-serif;
+}
+.g-input:focus { border-color: var(--blue); background: var(--bg4); box-shadow: 0 2px 12px rgba(26,115,232,.2); }
+.g-input::placeholder { color: var(--text3); }
+.g-select {
+  width: 100%; padding: 11px 14px;
+  border-radius: 28px; border: 1.5px solid var(--border2);
+  font-size: 14px; font-weight: 500; color: #fff;
+  background: var(--bg3); outline: none; cursor: pointer;
+  appearance: none; transition: all .2s; font-family: 'DM Sans', sans-serif;
+}
+.g-select:focus { border-color: var(--blue); background: var(--bg4); box-shadow: 0 2px 12px rgba(26,115,232,.2); }
+.g-select option { background: var(--bg3); color: #fff; }
+.gen-btn {
+  padding: 11px 22px; border-radius: 28px;
+  background: var(--blue); color: #fff; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  font-family: 'DM Sans', sans-serif; transition: all .2s;
+  box-shadow: 0 2px 12px rgba(26,115,232,.35);
+}
+.gen-btn:hover    { background: #1565d8; box-shadow: 0 4px 20px rgba(26,115,232,.5); transform: translateY(-1px); }
+.gen-btn:disabled { background: var(--bg4); color: var(--text3); box-shadow: none; transform: none; cursor: not-allowed; }
+.spinner { width: 14px; height: 14px; border: 2.5px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: none; }
+.gen-btn.loading .spin-hide { display: none; }
+.gen-btn.loading .spinner   { display: block; }
+
+/* ═══════════════════════════════════════════════════
+   USAGE BAR
+═══════════════════════════════════════════════════ */
+.usage-row    { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.usage-label  { font-size: 12px; color: var(--text2); font-weight: 500; white-space: nowrap; }
+.usage-track  { flex: 1; height: 5px; border-radius: 3px; background: var(--bg4); overflow: hidden; min-width: 60px; }
+.usage-fill   { height: 100%; border-radius: 3px; background: var(--blue); transition: width .6s ease; }
+.usage-count  { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.upgrade-hint { font-size: 12px; color: var(--blue); font-weight: 600; cursor: pointer; }
+.upgrade-hint:hover { text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════
+   ERROR BAR
+═══════════════════════════════════════════════════ */
+.err-bar      { display: none; align-items: center; gap: 8px; padding: 9px 13px; border-radius: 8px; background: rgba(234,67,53,.1); border: 1px solid rgba(234,67,53,.25); color: #f28b82; font-size: 13px; font-weight: 600; margin-top: 12px; }
+.err-bar.show { display: flex; }
+
+/* ═══════════════════════════════════════════════════
+   LEADS TABLE
+═══════════════════════════════════════════════════ */
+.leads-wrap  { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.export-btn {
+  display: flex; align-items: center; gap: 6px; padding: 7px 14px;
+  border-radius: 7px; border: 1px solid var(--border2); background: transparent;
+  font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all .18s; white-space: nowrap;
+}
+.export-btn:hover    { background: var(--bg3); border-color: var(--border2); color: var(--text); }
+.export-btn:disabled { opacity: .35; cursor: not-allowed; }
+table     { width: 100%; border-collapse: collapse; }
+thead th  {
+  padding: 10px 16px; text-align: left;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text3); border-bottom: 1px solid var(--border); background: var(--bg3);
+}
+tbody tr                { transition: background .12s; animation: slideRow .35s ease both; }
+tbody tr:nth-child(even){ background: rgba(255,255,255,.015); }
+tbody tr:hover          { background: rgba(26,115,232,.07); }
+tbody td                { padding: 12px 16px; font-size: 13px; color: #bbb; border-bottom: 1px solid rgba(255,255,255,.04); font-weight: 500; }
+tbody tr:last-child td  { border-bottom: none; }
+.td-biz      { display: flex; align-items: center; gap: 10px; }
+.td-biz-init { width: 28px; height: 28px; border-radius: 7px; background: var(--blue-dim); border: 1px solid rgba(26,115,232,.25); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--blue); font-family: 'Plus Jakarta Sans', sans-serif; flex-shrink: 0; }
+.td-biz-name { font-size: 13px; font-weight: 600; color: #ddd; }
+.td-biz-type { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.badge-green { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; background: var(--green-dim); color: var(--green); font-size: 11px; font-weight: 700; }
+.badge-gray  { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; background: var(--bg4); color: var(--text3); font-size: 11px; font-weight: 700; }
+.td-city     { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; background: var(--bg4); border: 1px solid var(--border2); color: var(--text2); font-size: 11px; font-weight: 600; }
+.td-rating   { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #bbb; }
+.td-star     { color: #fbbc04; }
+
+/* ═══════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════ */
+.empty-state { padding: 64px 24px; text-align: center; }
+.empty-title { font-size: 16px; font-weight: 700; color: var(--text2); margin-bottom: 7px; }
+.empty-sub   { font-size: 13px; color: var(--text3); max-width: 280px; margin: 0 auto; line-height: 1.65; }
+.empty-icon  { width: 48px; height: 48px; border-radius: 12px; background: var(--bg3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+.empty-icon svg { width: 22px; height: 22px; fill: none; stroke: var(--text3); stroke-width: 1.8; stroke-linecap: round; }
+
+/* ═══════════════════════════════════════════════════
+   BILLING
+═══════════════════════════════════════════════════ */
+.billing-layout  { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; max-width: 880px; }
+.billing-card    { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 26px; margin-bottom: 16px; }
+.billing-card.pro-border { border-color: var(--blue); border-width: 1.5px; }
+.plan-header-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
+.plan-label      { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--text3); margin-bottom: 8px; }
+.plan-name-big   { font-size: 28px; font-weight: 800; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -.04em; }
+.plan-badge      { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; background: var(--blue-dim); color: var(--blue); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; border: 1px solid rgba(26,115,232,.3); white-space: nowrap; }
+.plan-price-big  { font-size: 40px; font-weight: 800; letter-spacing: -.04em; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; }
+.plan-price-sub  { font-size: 13px; color: var(--text3); margin-top: 2px; }
+.usage-big       { margin-bottom: 20px; }
+.usage-big-labels{ display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 7px; }
+.usage-big-track { height: 7px; border-radius: 4px; background: var(--bg4); overflow: hidden; }
+.usage-big-fill  { height: 100%; border-radius: 4px; background: var(--blue); width: 45%; }
+.plan-detail-grid{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.plan-detail     { padding: 12px 14px; border-radius: 9px; background: var(--bg3); border: 1px solid var(--border); }
+.pd-label        { font-size: 10px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.pd-value        { font-size: 14px; font-weight: 700; color: #fff; }
+.manage-btn      { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border2); background: transparent; font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; }
+.manage-btn:hover{ background: var(--bg3); border-color: var(--border2); color: var(--text); }
+
+/* ═══════════════════════════════════════════════════
+   UPGRADE MODAL (existing)
+═══════════════════════════════════════════════════ */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  padding: 24px; opacity: 0; pointer-events: none; transition: opacity .22s;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--bg2); border-radius: 20px; padding: 36px;
+  width: 100%; max-width: 420px;
+  border: 1px solid var(--border2);
+  box-shadow: 0 24px 64px rgba(0,0,0,.7);
+  position: relative;
+  transform: scale(.94) translateY(10px); transition: transform .28s ease;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-backdrop.open .modal-box { transform: scale(1) translateY(0); }
+.modal-close  { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; color: var(--text2); transition: all .15s; }
+.modal-close:hover { background: var(--bg3); color: #fff; border-color: var(--border2); }
+.modal-icon   { width: 52px; height: 52px; border-radius: 14px; background: var(--blue-dim); border: 1px solid rgba(26,115,232,.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; }
+.modal-icon svg { width: 24px; height: 24px; fill: none; stroke: var(--blue); stroke-width: 2.2; stroke-linecap: round; }
+.modal-title  { font-size: 21px; font-weight: 800; color: #fff; text-align: center; margin-bottom: 8px; letter-spacing: -.03em; }
+.modal-sub    { font-size: 14px; color: var(--text2); text-align: center; line-height: 1.6; margin-bottom: 22px; }
+.modal-feats  { background: var(--bg3); border-radius: 10px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border); }
+.modal-feats-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--blue); margin-bottom: 12px; }
+.modal-feat   { display: flex; align-items: center; gap: 9px; font-size: 14px; color: #ccc; margin-bottom: 9px; font-weight: 500; }
+.modal-feat:last-child { margin-bottom: 0; }
+.mf-check     { width: 17px; height: 17px; border-radius: 50%; background: var(--green-dim); color: var(--green); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.modal-upgrade-btn { width: 100%; padding: 13px; border-radius: 9px; border: none; background: var(--blue); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'DM Sans', sans-serif; transition: all .2s; box-shadow: 0 3px 14px rgba(26,115,232,.4); margin-bottom: 9px; }
+.modal-upgrade-btn:hover { background: #1565d8; box-shadow: 0 6px 22px rgba(26,115,232,.55); transform: translateY(-1px); }
+.modal-skip   { width: 100%; padding: 11px; border-radius: 9px; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; }
+.modal-skip:hover { background: var(--bg3); color: var(--text); }
+
+/* ═══════════════════════════════════════════════════
+   SIGN UP MODAL (new - Supabase auth)
+═══════════════════════════════════════════════════ */
+.auth-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+  z-index: 600; display: flex; align-items: center; justify-content: center;
+  padding: 20px; opacity: 0; pointer-events: none; transition: opacity .22s;
+}
+.auth-modal-backdrop.open { opacity: 1; pointer-events: all; }
+.auth-modal-box {
+  background: var(--bg2); border-radius: 20px; padding: 36px 32px;
+  width: 100%; max-width: 400px;
+  border: 1px solid var(--border2);
+  box-shadow: 0 24px 64px rgba(0,0,0,.8);
+  position: relative;
+  transform: scale(.94) translateY(12px); transition: transform .28s ease;
+}
+.auth-modal-backdrop.open .auth-modal-box { transform: scale(1) translateY(0); }
+.auth-modal-close {
+  position: absolute; top: 14px; right: 14px; width: 30px; height: 30px;
+  border-radius: 50%; border: 1px solid var(--border); background: transparent;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  font-size: 15px; color: var(--text2); transition: all .15s;
+}
+.auth-modal-close:hover { background: var(--bg3); color: #fff; border-color: var(--border2); }
+
+.auth-logo {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 24px;
+}
+.auth-logo-mark {
+  width: 34px; height: 34px; border-radius: 9px; background: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+}
+.auth-logo-mark svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; }
+.auth-logo-text { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 18px; color: #fff; letter-spacing: -.02em; }
+.auth-logo-text span { color: var(--blue); }
+
+.auth-tabs {
+  display: flex; background: var(--bg3); border-radius: 10px; padding: 4px;
+  margin-bottom: 24px; border: 1px solid var(--border);
+}
+.auth-tab {
+  flex: 1; padding: 9px; border-radius: 7px; font-size: 14px; font-weight: 600;
+  color: var(--text2); background: transparent; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all .18s;
+}
+.auth-tab.active { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(26,115,232,.4); }
+
+.auth-panel { display: none; }
+.auth-panel.active { display: block; }
+
+.auth-field { margin-bottom: 14px; }
+.auth-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
+.auth-input {
+  width: 100%; padding: 12px 16px; border-radius: 10px;
+  border: 1.5px solid var(--border2); background: var(--bg3);
+  font-size: 14px; font-weight: 500; color: #fff;
+  font-family: 'DM Sans', sans-serif; outline: none; transition: all .2s;
+}
+.auth-input:focus { border-color: var(--blue); background: var(--bg4); box-shadow: 0 2px 12px rgba(26,115,232,.2); }
+.auth-input::placeholder { color: var(--text3); }
+
+.auth-submit {
+  width: 100%; padding: 13px; border-radius: 10px; border: none;
+  background: var(--blue); color: #fff; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .2s;
+  box-shadow: 0 3px 14px rgba(26,115,232,.4); margin-top: 6px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.auth-submit:hover { background: #1565d8; box-shadow: 0 6px 22px rgba(26,115,232,.55); transform: translateY(-1px); }
+.auth-submit:disabled { background: var(--bg4); color: var(--text3); box-shadow: none; transform: none; cursor: not-allowed; }
+.auth-submit-spinner {
+  width: 16px; height: 16px; border: 2.5px solid rgba(255,255,255,.25);
+  border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: none;
+}
+.auth-submit.loading .auth-btn-label   { display: none; }
+.auth-submit.loading .auth-submit-spinner { display: block; }
+
+.auth-msg {
+  margin-top: 14px; padding: 11px 14px; border-radius: 9px;
+  font-size: 13px; font-weight: 600; text-align: center; display: none;
+}
+.auth-msg.success { display: block; background: rgba(52,168,83,.12); border: 1px solid rgba(52,168,83,.3); color: var(--green); }
+.auth-msg.error   { display: block; background: rgba(234,67,53,.1);  border: 1px solid rgba(234,67,53,.25); color: #f28b82; }
+
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+.auth-divider-line { flex: 1; height: 1px; background: var(--border); }
+.auth-divider span { font-size: 12px; color: var(--text3); font-weight: 500; }
+
+.auth-footer { text-align: center; font-size: 12px; color: var(--text3); margin-top: 18px; line-height: 1.6; }
+.auth-footer a { color: var(--blue); text-decoration: none; }
+.auth-footer a:hover { text-decoration: underline; }
+
+/* Success state overlay */
+.auth-success-view { display: none; text-align: center; }
+.auth-success-view.show { display: block; }
+.auth-success-icon {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: rgba(52,168,83,.15); border: 2px solid rgba(52,168,83,.4);
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;
+}
+.auth-success-icon svg { width: 28px; height: 28px; fill: none; stroke: var(--green); stroke-width: 2.5; stroke-linecap: round; }
+.auth-success-title { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+.auth-success-sub   { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — TABLET (≤ 900px)
+═══════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* Nav */
+  .g-nav-links { display: none; }
+
+  /* Hero 2-col → 1-col */
+  .hero-inner {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding: 0 24px;
+  }
+  .hero { padding-top: 60px; }
+  .map-mockup { padding-bottom: 20px; padding-right: 16px; }
+  .float-card { bottom: -8px !important; right: -8px !important; }
+
+  /* Stats — 2×2 */
+  .stats-bar { padding: 24px 20px; }
+  .stats-bar-inner { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .stat-item:not(:last-child)::after { display: none; }
+  .stat-item { padding: 0; }
+  .stat-num { font-size: 30px; }
+
+  /* Features grid — 2-col */
+  .features-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Pricing — stack */
+  .pricing-grid { grid-template-columns: 1fr; max-width: 480px; }
+
+  /* Testimonials — 1-col */
+  .testi-grid { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
+
+  /* CTA banner */
+  .cta-banner { padding: 48px 24px; }
+
+  /* Section padding */
+  .section { padding: 60px 24px; }
+
+  /* Footer */
+  .g-footer { flex-direction: column; align-items: flex-start; padding: 24px 20px; }
+
+  /* Billing */
+  .billing-layout { grid-template-columns: 1fr; max-width: 100%; }
+  .plan-detail-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Dashboard */
+  .db-topbar { padding: 0 16px; }
+  .db-inner  { padding: 20px 16px; }
+  .stats-cards { grid-template-columns: 1fr 1fr; }
+
+  /* Table header row */
+  .search-row { flex-direction: column; gap: 10px; }
+  .si-wrap { min-width: 100%; }
+  .gen-btn { width: 100%; justify-content: center; border-radius: 10px; }
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — MOBILE (≤ 600px)
+═══════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  /* Pbar */
+  .pbar { padding: 6px 10px; }
+
+  /* Nav */
+  .g-nav { padding: 0 16px; height: 54px; top: 44px; }
+  .g-nav-actions .btn-ghost { display: none; }
+  .nav-hamburger { display: flex; }
+  .g-logo-text { font-size: 15px; }
+
+  /* Hero */
+  .hero { padding-top: 48px; }
+  .hero-inner { padding: 0 16px; gap: 32px; }
+  .hero h1 { font-size: clamp(26px, 7vw, 36px); }
+  .hero p  { font-size: 15px; }
+  .hero-cta .btn-blue, .hero-cta .btn-ghost { padding: 11px 20px; font-size: 14px; }
+  .hero-cta { gap: 10px; }
+
+  /* Map mockup smaller */
+  .map-bg { height: 200px; }
+  .map-block { transform: scale(0.85); transform-origin: top left; }
+  .float-card { padding: 8px 11px !important; }
+
+  /* Stats — 2×2 compact */
+  .stats-bar { padding: 20px 16px; }
+  .stats-bar-inner { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat-num { font-size: 26px; }
+  .stat-lbl { font-size: 12px; }
+
+  /* Features — 1-col */
+  .features-grid { grid-template-columns: 1fr; }
+
+  /* Section */
+  .section { padding: 48px 16px; }
+  .sec-title { font-size: clamp(20px, 6vw, 30px); }
+  .sec-sub { font-size: 15px; margin-bottom: 32px; }
+
+  /* Pricing */
+  .pricing-grid { grid-template-columns: 1fr; }
+  .price-card { padding: 28px 20px; }
+  .price-dollar { font-size: 42px; }
+
+  /* Testimonials */
+  .testi-grid { grid-template-columns: 1fr; }
+
+  /* CTA */
+  .cta-banner { padding: 40px 16px; }
+  .cta-banner h2 { font-size: clamp(22px, 6vw, 32px); }
+  .cta-banner p { font-size: 15px; }
+  .btn-white, .btn-outline-white { padding: 11px 20px; font-size: 14px; width: 100%; }
+
+  /* Footer */
+  .g-footer { padding: 20px 16px; gap: 12px; }
+  .gf-links { gap: 16px; }
+
+  /* Dashboard layout: hide sidebar on mobile */
+  #view-dashboard.active, #view-billing.active { flex-direction: column; }
+  .db-sidebar { width: 100%; flex-direction: row; border-right: none; border-bottom: 1px solid var(--border); }
+  .db-sb-logo { padding: 12px; border-bottom: none; border-right: 1px solid var(--border); }
+  .db-sb-nav  { flex-direction: row; padding: 8px; overflow-x: auto; display: flex; gap: 4px; }
+  .db-nav-item { padding: 8px 12px; white-space: nowrap; font-size: 13px; margin-bottom: 0; }
+  .db-nav-dot { display: none !important; }
+  .db-sb-footer { display: none; }
+
+  /* Dashboard main */
+  .db-inner  { padding: 16px 12px; }
+  .db-topbar { height: 50px; padding: 0 12px; }
+  .db-breadcrumb { font-size: 13px; }
+  .db-breadcrumb-sub { display: none; }
+
+  /* Stat cards: 2×2 */
+  .stats-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-c { padding: 14px; }
+  .stat-c-val { font-size: 22px; }
+
+  /* Search: full stack */
+  .search-card { padding: 16px; }
+  .search-row { flex-direction: column; }
+  .si-wrap { min-width: 100%; width: 100%; }
+  .gen-btn { width: 100%; justify-content: center; border-radius: 10px; }
+
+  /* Table: responsive scroll */
+  .leads-wrap { overflow-x: auto; }
+  table { min-width: 500px; }
+
+  /* Table header row */
+  div[style*="display:flex;align-items:center;justify-content:space-between"] { flex-wrap: wrap; gap: 8px; }
+
+  /* Billing */
+  .billing-layout { grid-template-columns: 1fr; }
+  .plan-header-row { flex-direction: column; gap: 12px; }
+  .plan-detail-grid { grid-template-columns: 1fr; }
+  .plan-detail-grid .plan-detail { min-width: 0; }
+  .billing-card { padding: 18px; }
+
+  /* Pro comparison grid */
+  div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+
+  /* Modals — full-width */
+  .modal-box, .auth-modal-box { padding: 24px 20px; border-radius: 16px; }
+  .auth-modal-backdrop, .modal-backdrop { padding: 12px; align-items: flex-end; }
+  .auth-modal-box { border-radius: 20px 20px 0 0; max-width: 100%; }
+  .modal-box { border-radius: 20px 20px 0 0; max-width: 100%; }
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — SMALL MOBILE (≤ 380px)
+═══════════════════════════════════════════════════ */
+@media (max-width: 380px) {
+  .g-logo-text { display: none; }
+  .hero h1 { font-size: 24px; }
+  .map-bg { height: 170px; }
+  .hero-cta { flex-direction: column; }
+  .hero-cta .btn-blue, .hero-cta .btn-ghost { width: 100%; text-align: center; }
+  .stats-cards { grid-template-columns: 1fr 1fr; }
+  .price-dollar { font-size: 36px; }
+}
+</style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════════
-     PREVIEW BAR  (remove in production)
-══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════
+     PREVIEW BAR
+══════════════════════════════════════════════ -->
 <div class="pbar">
   <span class="pbar-label">Preview</span>
   <div class="ptab active" onclick="switchView('landing',this)">Landing Page</div>
@@ -29,19 +899,107 @@
   <div class="ptab"        onclick="openModal()">Upgrade Modal</div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
+     SIGN UP / SIGN IN MODAL (Supabase Auth)
+══════════════════════════════════════════════ -->
+<div class="auth-modal-backdrop" id="auth-modal-backdrop">
+  <div class="auth-modal-box">
+    <button class="auth-modal-close" onclick="closeAuthModal()">✕</button>
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-mark">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="4"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+      </div>
+      <span class="auth-logo-text">Map<span>Leads</span></span>
+    </div>
+
+    <!-- Normal form view -->
+    <div id="auth-form-view">
+      <!-- Tabs: Sign Up / Sign In -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-signup" onclick="switchAuthTab('signup')">Sign Up</button>
+        <button class="auth-tab" id="tab-signin" onclick="switchAuthTab('signin')">Sign In</button>
+      </div>
+
+      <!-- Sign Up panel -->
+      <div class="auth-panel active" id="panel-signup">
+        <form id="signupForm" onsubmit="handleSignUp(event)">
+          <div class="auth-field">
+            <label for="signup-email">Email address</label>
+            <input class="auth-input" id="signup-email" name="email" type="email" placeholder="you@example.com" required autocomplete="email">
+          </div>
+          <div class="auth-field">
+            <label for="signup-password">Password</label>
+            <input class="auth-input" id="signup-password" name="password" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
+          </div>
+          <button class="auth-submit" type="submit" id="signup-btn">
+            <span class="auth-btn-label">Create Free Account</span>
+            <div class="auth-submit-spinner"></div>
+          </button>
+        </form>
+        <div class="auth-msg" id="signup-msg"></div>
+        <div class="auth-footer">
+          Already have an account?
+          <a href="#" onclick="switchAuthTab('signin');return false;">Sign in here</a>
+        </div>
+      </div>
+
+      <!-- Sign In panel -->
+      <div class="auth-panel" id="panel-signin">
+        <form id="signinForm" onsubmit="handleSignIn(event)">
+          <div class="auth-field">
+            <label for="signin-email">Email address</label>
+            <input class="auth-input" id="signin-email" name="email" type="email" placeholder="you@example.com" required autocomplete="email">
+          </div>
+          <div class="auth-field">
+            <label for="signin-password">Password</label>
+            <input class="auth-input" id="signin-password" name="password" type="password" placeholder="Your password" required autocomplete="current-password">
+          </div>
+          <button class="auth-submit" type="submit" id="signin-btn">
+            <span class="auth-btn-label">Sign In</span>
+            <div class="auth-submit-spinner"></div>
+          </button>
+        </form>
+        <div class="auth-msg" id="signin-msg"></div>
+        <div class="auth-footer">
+          Don't have an account?
+          <a href="#" onclick="switchAuthTab('signup');return false;">Sign up free</a>
+        </div>
+      </div>
+
+      <div class="auth-footer" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        By continuing, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+      </div>
+    </div>
+
+    <!-- Success view (shown after successful sign up) -->
+    <div class="auth-success-view" id="auth-success-view">
+      <div class="auth-success-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="auth-success-title">You're in! 🎉</div>
+      <div class="auth-success-sub" id="auth-success-msg">
+        Check your email to confirm your account, then come back to start generating leads.
+      </div>
+      <button class="auth-submit" onclick="closeAuthModal()">
+        <span class="auth-btn-label">Go to Dashboard</span>
+        <div class="auth-submit-spinner"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
      LANDING PAGE
-══════════════════════════════════════════════════════════ -->
+══════════════════════════════════════════════ -->
 <div id="view-landing" class="view active" style="padding-top:48px;">
 
-  <!-- ── Navbar ── -->
+  <!-- Navbar -->
   <nav class="g-nav">
     <a class="g-logo" href="#">
       <div class="g-logo-mark">
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="10" r="4"/>
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        </svg>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="4"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
       </div>
       <span class="g-logo-text">Map<span>Leads</span></span>
     </a>
@@ -51,15 +1009,27 @@
       <a class="gnl" href="#testimonials">Testimonials</a>
     </div>
     <div class="g-nav-actions">
-      <button class="btn-ghost">Sign In</button>
-      <button class="btn-blue" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Start Free</button>
+      <button class="btn-ghost" onclick="openAuthModal('signin')">Sign In</button>
+      <button class="btn-blue" onclick="openAuthModal('signup')">Start Free</button>
+    </div>
+    <!-- Hamburger for mobile -->
+    <div class="nav-hamburger" onclick="toggleMobileMenu()" id="hamburger">
+      <span></span><span></span><span></span>
     </div>
   </nav>
 
-  <!-- ── Hero ── -->
+  <!-- Mobile nav menu -->
+  <div class="nav-mobile-menu" id="mobile-menu">
+    <a class="nav-mobile-link" href="#features" onclick="closeMobileMenu()">Features</a>
+    <a class="nav-mobile-link" href="#pricing" onclick="closeMobileMenu()">Pricing</a>
+    <a class="nav-mobile-link" href="#testimonials" onclick="closeMobileMenu()">Testimonials</a>
+    <a class="nav-mobile-link" href="#" onclick="openAuthModal('signin');closeMobileMenu()">Sign In</a>
+    <button class="btn-blue" style="width:100%;padding:12px;border-radius:8px;font-size:15px;" onclick="openAuthModal('signup');closeMobileMenu()">Start Free — 20 Leads</button>
+  </div>
+
+  <!-- Hero -->
   <section class="hero">
     <div class="hero-inner">
-
       <!-- Left: Copy -->
       <div>
         <div class="hero-badge fu d0">
@@ -69,8 +1039,8 @@
         <h1 class="fu d1">Find Local Business<br>Leads <em>Instantly</em></h1>
         <p class="fu d2">Pull verified emails, phones, and websites from any local business category in any city — powered by real-time map data. Stop prospecting manually.</p>
         <div class="hero-cta fu d3">
-          <button class="btn-blue" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Start Free — 20 Leads</button>
-          <button class="btn-ghost">See How It Works</button>
+          <button class="btn-blue" onclick="openAuthModal('signup')">Start Free — 20 Leads</button>
+          <button class="btn-ghost" onclick="openAuthModal('signin')">Sign In</button>
         </div>
         <div class="hero-trust fu d4">
           <span>Free forever</span>
@@ -84,8 +1054,6 @@
       <!-- Right: Map Mockup -->
       <div class="map-mockup fu d4">
         <div class="map-frame">
-
-          <!-- Browser chrome -->
           <div class="map-chrome">
             <div class="chrome-dots">
               <div class="chrome-dot" style="background:#ea4335;opacity:.6"></div>
@@ -94,29 +1062,20 @@
             </div>
             <div class="chrome-addr">app.mapleads.io/dashboard</div>
           </div>
-
-          <!-- Dark map canvas -->
           <div class="map-bg">
-            <!-- Roads -->
             <div class="map-road-h" style="top:33%"></div>
             <div class="map-road-h" style="top:64%"></div>
             <div class="map-road-v" style="left:26%"></div>
             <div class="map-road-v" style="left:56%"></div>
             <div class="map-road-v" style="left:78%"></div>
-
-            <!-- Building blocks -->
             <div class="map-block" style="top:12%;left:30%;width:88px;height:52px;"></div>
             <div class="map-block" style="top:11%;left:60%;width:68px;height:40px;"></div>
-            <div class="map-block" style="top:42%;left:5%; width:78px;height:48px;"></div>
+            <div class="map-block" style="top:42%;left:5%;width:78px;height:48px;"></div>
             <div class="map-block" style="top:42%;left:60%;width:108px;height:56px;"></div>
             <div class="map-block" style="top:72%;left:29%;width:78px;height:44px;"></div>
             <div class="map-block" style="top:72%;left:62%;width:72px;height:48px;"></div>
-
-            <!-- Water & park areas -->
             <div style="position:absolute;top:14%;right:0;width:78px;height:48px;background:#152030;border-radius:3px;"></div>
             <div style="position:absolute;bottom:8%;left:4%;width:88px;height:52px;background:#142014;border-radius:3px;"></div>
-
-            <!-- Map pins -->
             <div class="map-pin" style="top:23%;left:31%;animation:dotPop .4s .2s ease both,pinBounce 4s 1s ease-in-out infinite">
               <div class="map-pin-head" style="background:#ea4335"><div class="map-pin-dot"></div></div>
               <div class="map-pin-tail" style="background:#ea4335"></div>
@@ -142,8 +1101,6 @@
               <div class="map-pin-tail" style="background:#ea4335"></div>
               <div class="map-pin-label">Bean &amp; Brew</div>
             </div>
-
-            <!-- Search overlay -->
             <div class="map-overlay">
               <div class="map-search-row">
                 <input class="map-s-input" value="Restaurants in Austin, TX" readonly>
@@ -151,30 +1108,15 @@
               </div>
             </div>
           </div>
-
-          <!-- Result chips below map -->
           <div class="map-results">
-            <div class="map-result-chip">
-              <div class="mrc-name">Tony's Pizza Co.</div>
-              <div class="mrc-badge-g">Website</div>
-            </div>
-            <div class="map-result-chip">
-              <div class="mrc-name">The Burger Lab</div>
-              <div class="mrc-badge-g">Website</div>
-            </div>
-            <div class="map-result-chip">
-              <div class="mrc-name">Fresh Bowl Cafe</div>
-              <div class="mrc-badge-n">No website</div>
-            </div>
+            <div class="map-result-chip"><div class="mrc-name">Tony's Pizza Co.</div><div class="mrc-badge-g">Website</div></div>
+            <div class="map-result-chip"><div class="mrc-name">The Burger Lab</div><div class="mrc-badge-g">Website</div></div>
+            <div class="map-result-chip"><div class="mrc-name">Fresh Bowl Cafe</div><div class="mrc-badge-n">No website</div></div>
           </div>
         </div>
-
-        <!-- Floating stat card -->
         <div class="float-card" style="bottom:-14px;right:-14px;display:flex;align-items:center;gap:12px;">
           <div style="width:32px;height:32px;border-radius:8px;background:rgba(52,168,83,.15);border:1px solid rgba(52,168,83,.3);display:flex;align-items:center;justify-content:center;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2.5" stroke-linecap="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
           <div>
             <div style="font-size:13px;font-weight:700;color:#fff;">24 leads found</div>
@@ -182,11 +1124,10 @@
           </div>
         </div>
       </div>
-
     </div>
   </section>
 
-  <!-- ── Stats Bar ── -->
+  <!-- Stats Bar -->
   <div class="stats-bar" style="margin-top:72px;">
     <div class="stats-bar-inner">
       <div class="stat-item fu d1"><div class="stat-num"><span>2.4</span>M+</div><div class="stat-lbl">Leads Generated</div></div>
@@ -196,56 +1137,30 @@
     </div>
   </div>
 
-  <!-- ── Features ── -->
+  <!-- Features -->
   <div id="features" style="background:var(--bg);">
     <div class="section sec-center">
       <div class="sec-eyebrow fu">Features</div>
       <h2 class="sec-title fu d1">Built for local prospecting at scale</h2>
       <p class="sec-sub fu d2">Everything you need to find, manage, and export local business contacts.</p>
       <div class="features-grid">
-        <div class="feat-card fu d2">
-          <div class="feat-label">Search</div>
-          <h3>Map-Powered Search</h3>
-          <p>Pull real-time data from the world's largest local business database — any city, any category, instantly.</p>
-        </div>
-        <div class="feat-card fu d3">
-          <div class="feat-label">Data</div>
-          <h3>Verified Contact Data</h3>
-          <p>Get phone numbers, email addresses, and websites — verified and ready for immediate outreach.</p>
-        </div>
-        <div class="feat-card fu d4">
-          <div class="feat-label">Speed</div>
-          <h3>Results in Under 60s</h3>
-          <p>Our scraping engine delivers dozens of qualified leads in seconds. No waiting, no manual work.</p>
-        </div>
-        <div class="feat-card fu d2">
-          <div class="feat-label">Intelligence</div>
-          <h3>Rating &amp; Review Data</h3>
-          <p>See star ratings and review counts to prioritize high-reputation businesses or find untapped markets.</p>
-        </div>
-        <div class="feat-card fu d3">
-          <div class="feat-label">Export</div>
-          <h3>One-Click CSV Export</h3>
-          <p>Download all leads to CSV and drop them straight into any CRM, email tool, or spreadsheet.</p>
-        </div>
-        <div class="feat-card fu d4">
-          <div class="feat-label">Freshness</div>
-          <h3>Live Data Every Time</h3>
-          <p>No stale databases. We scrape live — always up-to-date contact info and business details.</p>
-        </div>
+        <div class="feat-card fu d2"><div class="feat-label">Search</div><h3>Map-Powered Search</h3><p>Pull real-time data from the world's largest local business database — any city, any category, instantly.</p></div>
+        <div class="feat-card fu d3"><div class="feat-label">Data</div><h3>Verified Contact Data</h3><p>Get phone numbers, email addresses, and websites — verified and ready for immediate outreach.</p></div>
+        <div class="feat-card fu d4"><div class="feat-label">Speed</div><h3>Results in Under 60s</h3><p>Our scraping engine delivers dozens of qualified leads in seconds. No waiting, no manual work.</p></div>
+        <div class="feat-card fu d2"><div class="feat-label">Intelligence</div><h3>Rating &amp; Review Data</h3><p>See star ratings and review counts to prioritize high-reputation businesses or find untapped markets.</p></div>
+        <div class="feat-card fu d3"><div class="feat-label">Export</div><h3>One-Click CSV Export</h3><p>Download all leads to CSV and drop them straight into any CRM, email tool, or spreadsheet.</p></div>
+        <div class="feat-card fu d4"><div class="feat-label">Freshness</div><h3>Live Data Every Time</h3><p>No stale databases. We scrape live — always up-to-date contact info and business details.</p></div>
       </div>
     </div>
   </div>
 
-  <!-- ── Pricing ── -->
+  <!-- Pricing -->
   <div id="pricing" class="pricing-wrap">
     <div class="section sec-center">
       <div class="sec-eyebrow fu">Pricing</div>
       <h2 class="sec-title fu d1">Simple, honest pricing</h2>
       <p class="sec-sub fu d2">Start for free. Upgrade only when you need more.</p>
       <div class="pricing-grid fu d2">
-
-        <!-- Free plan -->
         <div class="price-card">
           <div class="price-plan-name">Free</div>
           <div class="price-dollar">$0</div>
@@ -259,10 +1174,8 @@
             <li class="pf-item"><div class="pf-dash">—</div> <span style="color:var(--text3)">Unlimited searches</span></li>
             <li class="pf-item"><div class="pf-dash">—</div> <span style="color:var(--text3)">Priority speed</span></li>
           </ul>
-          <button class="price-btn-free" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Get Started Free</button>
+          <button class="price-btn-free" onclick="openAuthModal('signup')">Get Started Free</button>
         </div>
-
-        <!-- Pro plan -->
         <div class="price-card pro">
           <div class="pro-badge-top">Most Popular</div>
           <div class="price-plan-name pro">Pro</div>
@@ -278,14 +1191,13 @@
             <li class="pf-item"><div class="pf-check">✓</div> 3× priority scraping speed</li>
             <li class="pf-item"><div class="pf-check">✓</div> Priority support</li>
           </ul>
-          <button class="price-btn-pro" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Start Pro Trial</button>
+          <button class="price-btn-pro" onclick="openAuthModal('signup')">Start Pro Trial</button>
         </div>
-
       </div>
     </div>
   </div>
 
-  <!-- ── Testimonials ── -->
+  <!-- Testimonials -->
   <div id="testimonials" style="background:var(--bg);">
     <div class="section sec-center">
       <div class="sec-eyebrow fu">Reviews</div>
@@ -294,144 +1206,93 @@
         <div class="testi-card">
           <div class="testi-stars">★★★★★</div>
           <p class="testi-text">"MapLeads cut my prospecting time by 80%. I generate a full week of leads in under five minutes. Complete game-changer."</p>
-          <div class="testi-author">
-            <div class="testi-av">MC</div>
-            <div><div class="testi-name">Marcus Chen</div><div class="testi-role">Marketing Agency Owner</div></div>
-          </div>
+          <div class="testi-author"><div class="testi-av">MC</div><div><div class="testi-name">Marcus Chen</div><div class="testi-role">Marketing Agency Owner</div></div></div>
         </div>
         <div class="testi-card">
           <div class="testi-stars">★★★★★</div>
           <p class="testi-text">"The data quality is remarkable. Real emails that actually work. My cold outreach reply rate tripled within two weeks."</p>
-          <div class="testi-author">
-            <div class="testi-av" style="background:#34a853">SW</div>
-            <div><div class="testi-name">Sarah Williams</div><div class="testi-role">B2B Sales Rep</div></div>
-          </div>
+          <div class="testi-author"><div class="testi-av" style="background:#34a853">SW</div><div><div class="testi-name">Sarah Williams</div><div class="testi-role">B2B Sales Rep</div></div></div>
         </div>
         <div class="testi-card">
           <div class="testi-stars">★★★★★</div>
           <p class="testi-text">"Paid for Pro in the first week. The ROI is immediate. I just type in a city and get a full prospect list in seconds."</p>
-          <div class="testi-author">
-            <div class="testi-av" style="background:#ea4335">JR</div>
-            <div><div class="testi-name">Jake Rodriguez</div><div class="testi-role">Freelance Consultant</div></div>
-          </div>
+          <div class="testi-author"><div class="testi-av" style="background:#ea4335">JR</div><div><div class="testi-name">Jake Rodriguez</div><div class="testi-role">Freelance Consultant</div></div></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── CTA Banner ── -->
+  <!-- CTA Banner -->
   <div class="cta-banner">
     <h2>Ready to fill your pipeline?</h2>
     <p>Join 12,000+ professionals generating leads with MapLeads.</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <button class="btn-white" onclick="switchView('dashboard',document.querySelectorAll('.ptab')[1])">Start Free — No Card Needed</button>
-      <button class="btn-outline-white">View Pricing</button>
+      <button class="btn-white" onclick="openAuthModal('signup')">Start Free — No Card Needed</button>
+      <button class="btn-outline-white" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">View Pricing</button>
     </div>
     <div style="margin-top:16px;font-size:12px;color:rgba(255,255,255,.35);">Free plan includes 20 leads · Upgrade anytime</div>
   </div>
 
-  <!-- ── Footer ── -->
+  <!-- Footer -->
   <footer class="g-footer">
     <div style="display:flex;align-items:center;gap:9px;">
       <div class="g-logo-mark" style="width:26px;height:26px;">
-        <svg viewBox="0 0 24 24" width="13" height="13">
-          <circle cx="12" cy="10" r="4"/>
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        </svg>
+        <svg viewBox="0 0 24 24" width="13" height="13"><circle cx="12" cy="10" r="4"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
       </div>
       <span style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;color:#fff;">Map<span style="color:var(--blue)">Leads</span></span>
     </div>
     <div class="gf-copy">© 2024 MapLeads. All rights reserved.</div>
     <div class="gf-links">
-      <a href="#">Privacy</a>
-      <a href="#">Terms</a>
-      <a href="#">Support</a>
-      <a href="#">Status</a>
+      <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a><a href="#">Status</a>
     </div>
   </footer>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
      DASHBOARD
-══════════════════════════════════════════════════════════ -->
+══════════════════════════════════════════════ -->
 <div id="view-dashboard" class="view" style="padding-top:48px;">
-  <!-- Sidebar -->
   <div class="db-sidebar">
     <div class="db-sb-logo">
       <a class="g-logo" href="#" onclick="switchView('landing',document.querySelectorAll('.ptab')[0]);return false;">
-        <div class="g-logo-mark" style="width:28px;height:28px;">
-          <svg viewBox="0 0 24 24" width="14" height="14">
-            <circle cx="12" cy="10" r="4"/>
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-          </svg>
-        </div>
+        <div class="g-logo-mark" style="width:28px;height:28px;"><svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="10" r="4"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg></div>
         <span class="g-logo-text" style="font-size:15px;">Map<span>Leads</span></span>
       </a>
     </div>
     <nav class="db-sb-nav">
-      <div class="db-nav-item active" onclick="this.parentNode.querySelectorAll('.db-nav-item').forEach(n=>n.classList.remove('active'));this.classList.add('active')">
-        Dashboard <div class="db-nav-dot"></div>
-      </div>
-      <div class="db-nav-item" onclick="switchView('billing',document.querySelectorAll('.ptab')[2])">
-        Billing
-      </div>
-      <div class="db-nav-item" onclick="switchView('landing',document.querySelectorAll('.ptab')[0])">
-        Home
-      </div>
+      <div class="db-nav-item active" onclick="this.parentNode.querySelectorAll('.db-nav-item').forEach(n=>n.classList.remove('active'));this.classList.add('active')">Dashboard <div class="db-nav-dot"></div></div>
+      <div class="db-nav-item" onclick="switchView('billing',document.querySelectorAll('.ptab')[2])">Billing</div>
+      <div class="db-nav-item" onclick="switchView('landing',document.querySelectorAll('.ptab')[0])">Home</div>
     </nav>
     <div class="db-sb-footer">
       <div class="db-user-chip">
-        <div class="db-av">AJ</div>
-        <div>
-          <div class="db-uname">Alex Johnson</div>
-          <div class="db-uplan">Free Plan</div>
-        </div>
+        <div class="db-av" id="user-avatar">AJ</div>
+        <div><div class="db-uname" id="user-name">Alex Johnson</div><div class="db-uplan">Free Plan</div></div>
       </div>
     </div>
   </div>
-
-  <!-- Main content -->
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-    <!-- Topbar -->
     <div class="db-topbar">
-      <div class="db-breadcrumb">
-        <span>MapLeads</span>
-        <span class="db-breadcrumb-sep">›</span>
-        <span class="db-breadcrumb-sub">Dashboard</span>
-      </div>
+      <div class="db-breadcrumb"><span>MapLeads</span><span class="db-breadcrumb-sep">›</span><span class="db-breadcrumb-sub">Dashboard</span></div>
       <div class="db-topbar-right">
-        <div class="db-notif">
-          <svg viewBox="0 0 24 24">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-        </div>
+        <div class="db-notif"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
         <div style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border:1px solid var(--border);border-radius:8px;cursor:pointer;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
-          <div class="db-av" style="width:28px;height:28px;font-size:11px;">AJ</div>
-          <div>
-            <div class="db-uname">Alex Johnson</div>
-            <div class="db-uplan">Free Plan</div>
-          </div>
+          <div class="db-av" style="width:28px;height:28px;font-size:11px;" id="topbar-avatar">AJ</div>
+          <div><div class="db-uname" id="topbar-name">Alex Johnson</div><div class="db-uplan">Free Plan</div></div>
           <span style="color:var(--text3);font-size:11px;margin-left:4px;">▾</span>
         </div>
       </div>
     </div>
-
-    <!-- Page body -->
     <div class="db-main">
       <div class="db-inner">
         <div class="db-page-title">Lead Generator</div>
         <div class="db-page-sub">Find local business contacts in any city, instantly.</div>
-
-        <!-- Stat cards -->
         <div class="stats-cards">
           <div class="stat-c"><div class="stat-c-label">Total Leads</div><div class="stat-c-val" id="sc-total" style="color:var(--blue)">0</div></div>
           <div class="stat-c"><div class="stat-c-label">Cities</div><div class="stat-c-val" id="sc-cities" style="color:var(--blue)">0</div></div>
           <div class="stat-c"><div class="stat-c-label">Categories</div><div class="stat-c-val" id="sc-cats" style="color:var(--blue)">0</div></div>
           <div class="stat-c"><div class="stat-c-label">Free Leads Left</div><div class="stat-c-val" id="sc-left" style="color:#34a853">20</div></div>
         </div>
-
-        <!-- Search card -->
         <div class="search-card">
           <div class="search-card-title">Generate New Leads</div>
           <div class="search-card-sub" id="search-sub">Search any business category in any city to pull verified contacts.</div>
@@ -439,17 +1300,10 @@
             <div class="si-wrap">
               <select class="g-select" id="biz-select">
                 <option value="" disabled selected>Business type...</option>
-                <option>Restaurants</option>
-                <option>Plumbers</option>
-                <option>Dentists</option>
-                <option>Electricians</option>
-                <option>HVAC</option>
-                <option>Lawyers</option>
-                <option>Real Estate Agents</option>
-                <option>Coffee Shops</option>
-                <option>Hair Salons</option>
-                <option>Auto Repair</option>
-                <option>Gyms &amp; Fitness</option>
+                <option>Restaurants</option><option>Plumbers</option><option>Dentists</option>
+                <option>Electricians</option><option>HVAC</option><option>Lawyers</option>
+                <option>Real Estate Agents</option><option>Coffee Shops</option>
+                <option>Hair Salons</option><option>Auto Repair</option><option>Gyms &amp; Fitness</option>
               </select>
             </div>
             <div class="si-wrap">
@@ -460,9 +1314,7 @@
               <div class="spinner"></div>
             </button>
           </div>
-          <div class="err-bar" id="err-bar">
-            <span id="err-text">Please fill in all fields.</span>
-          </div>
+          <div class="err-bar" id="err-bar"><span id="err-text">Please fill in all fields.</span></div>
           <div class="usage-row">
             <span class="usage-label">Free plan usage</span>
             <div class="usage-track"><div class="usage-fill" id="usage-fill" style="width:0%"></div></div>
@@ -470,49 +1322,33 @@
             <a class="upgrade-hint" onclick="openModal()">Upgrade</a>
           </div>
         </div>
-
-        <!-- Table header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
           <div>
             <span style="font-size:15px;font-weight:700;color:#fff;" id="table-headline">Your Leads</span>
             <span style="font-size:13px;color:var(--text3);margin-left:8px;" id="table-sub"></span>
           </div>
           <button class="export-btn" id="export-btn" onclick="exportCSV()" disabled>Export CSV</button>
         </div>
-
-        <!-- Leads table container -->
         <div class="leads-wrap" id="leads-container">
           <div class="empty-state">
-            <div class="empty-icon">
-              <svg viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-            </div>
+            <div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
             <div class="empty-title">No leads yet</div>
             <div class="empty-sub">Choose a business type and city above, then click Generate Leads.</div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
      BILLING
-══════════════════════════════════════════════════════════ -->
+══════════════════════════════════════════════ -->
 <div id="view-billing" class="view" style="padding-top:48px;">
-  <!-- Sidebar -->
   <div class="db-sidebar">
     <div class="db-sb-logo">
       <a class="g-logo" href="#" onclick="switchView('landing',document.querySelectorAll('.ptab')[0]);return false;">
-        <div class="g-logo-mark" style="width:28px;height:28px;">
-          <svg viewBox="0 0 24 24" width="14" height="14">
-            <circle cx="12" cy="10" r="4"/>
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-          </svg>
-        </div>
+        <div class="g-logo-mark" style="width:28px;height:28px;"><svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="10" r="4"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg></div>
         <span class="g-logo-text" style="font-size:15px;">Map<span>Leads</span></span>
       </a>
     </div>
@@ -522,72 +1358,34 @@
       <div class="db-nav-item" onclick="switchView('landing',document.querySelectorAll('.ptab')[0])">Home</div>
     </nav>
     <div class="db-sb-footer">
-      <div class="db-user-chip">
-        <div class="db-av">AJ</div>
-        <div>
-          <div class="db-uname">Alex Johnson</div>
-          <div class="db-uplan">Free Plan</div>
-        </div>
-      </div>
+      <div class="db-user-chip"><div class="db-av">AJ</div><div><div class="db-uname">Alex Johnson</div><div class="db-uplan">Free Plan</div></div></div>
     </div>
   </div>
-
-  <!-- Main content -->
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-    <!-- Topbar -->
     <div class="db-topbar">
-      <div class="db-breadcrumb">
-        <span>MapLeads</span>
-        <span class="db-breadcrumb-sep">›</span>
-        <span class="db-breadcrumb-sub">Billing &amp; Plan</span>
-      </div>
+      <div class="db-breadcrumb"><span>MapLeads</span><span class="db-breadcrumb-sep">›</span><span class="db-breadcrumb-sub">Billing &amp; Plan</span></div>
       <div class="db-topbar-right">
-        <div class="db-notif">
-          <svg viewBox="0 0 24 24">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-        </div>
+        <div class="db-notif"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
         <div style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border:1px solid var(--border);border-radius:8px;cursor:pointer;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
           <div class="db-av" style="width:28px;height:28px;font-size:11px;">AJ</div>
-          <div>
-            <div class="db-uname">Alex Johnson</div>
-            <div class="db-uplan">Free Plan</div>
-          </div>
+          <div><div class="db-uname">Alex Johnson</div><div class="db-uplan">Free Plan</div></div>
           <span style="color:var(--text3);font-size:11px;margin-left:4px;">▾</span>
         </div>
       </div>
     </div>
-
-    <!-- Page body -->
     <div class="db-main">
       <div class="db-inner">
         <div class="db-page-title">Billing &amp; Plan</div>
         <div class="db-page-sub">Manage your subscription and account usage.</div>
-
         <div class="billing-layout">
-          <!-- Left column -->
           <div>
-            <!-- Current plan card -->
             <div class="billing-card">
               <div class="plan-header-row">
-                <div>
-                  <div class="plan-label">Current Plan</div>
-                  <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
-                    <div class="plan-name-big">Free</div>
-                    <div class="plan-badge">Active</div>
-                  </div>
-                </div>
-                <div style="text-align:right;">
-                  <div class="plan-price-big">$0</div>
-                  <div class="plan-price-sub">/ forever</div>
-                </div>
+                <div><div class="plan-label">Current Plan</div><div style="display:flex;align-items:center;gap:12px;margin-top:4px;flex-wrap:wrap;"><div class="plan-name-big">Free</div><div class="plan-badge">Active</div></div></div>
+                <div style="text-align:right;"><div class="plan-price-big">$0</div><div class="plan-price-sub">/ forever</div></div>
               </div>
               <div class="usage-big">
-                <div class="usage-big-labels">
-                  <span style="font-size:13px;font-weight:600;color:var(--text);">Lead Usage</span>
-                  <span style="font-size:13px;font-weight:700;color:#fff;">9 / 20 used</span>
-                </div>
+                <div class="usage-big-labels"><span style="font-size:13px;font-weight:600;color:var(--text);">Lead Usage</span><span style="font-size:13px;font-weight:700;color:#fff;">9 / 20 used</span></div>
                 <div class="usage-big-track"><div class="usage-big-fill"></div></div>
                 <div style="font-size:12px;color:var(--text2);margin-top:7px;">11 free leads remaining. Upgrade for unlimited access.</div>
               </div>
@@ -601,11 +1399,9 @@
                 <button class="manage-btn">Manage Account</button>
               </div>
             </div>
-
-            <!-- Pro comparison card -->
             <div class="billing-card pro-border" style="position:relative;overflow:hidden;">
               <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--blue);"></div>
-              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;">
                 <div>
                   <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);margin-bottom:6px;">Pro Plan</div>
                   <div style="font-size:28px;font-weight:800;color:var(--blue);font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.04em;">$49<span style="font-size:15px;color:var(--text3);font-weight:500;">/month</span></div>
@@ -624,25 +1420,17 @@
               <div style="text-align:center;font-size:12px;color:var(--text3);margin-top:10px;">Cancel anytime · Secure checkout via Stripe</div>
             </div>
           </div>
-
-          <!-- Right column -->
           <div>
-            <!-- Payment history -->
             <div class="billing-card" style="margin-bottom:14px;">
               <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:14px;">Payment History</div>
               <div style="text-align:center;padding:32px 16px;">
                 <div style="width:40px;height:40px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round">
-                    <rect x="1" y="4" width="22" height="16" rx="2"/>
-                    <line x1="1" y1="10" x2="23" y2="10"/>
-                  </svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                 </div>
                 <div style="font-size:13px;color:var(--text3);">No invoices yet.</div>
                 <div style="font-size:12px;color:var(--text3);margin-top:4px;opacity:.6;">Invoices appear after first payment.</div>
               </div>
             </div>
-
-            <!-- Help card -->
             <div class="billing-card">
               <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:5px;">Need help?</div>
               <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.55;">Questions about billing? Our support team is here.</div>
@@ -653,23 +1441,18 @@
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
      UPGRADE MODAL
-══════════════════════════════════════════════════════════ -->
+══════════════════════════════════════════════ -->
 <div class="modal-backdrop" id="modal-backdrop">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-icon">
-      <svg viewBox="0 0 24 24">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-      </svg>
-    </div>
+    <div class="modal-icon"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
     <div class="modal-title">Upgrade to Pro</div>
     <div class="modal-sub">You've reached the <strong style="color:#fff;">20-lead free limit</strong>. Upgrade to Pro for unlimited lead generation with no caps.</div>
     <div class="modal-feats">
@@ -680,15 +1463,265 @@
       <div class="modal-feat"><div class="mf-check">✓</div> 3× faster priority scraping</div>
       <div class="modal-feat"><div class="mf-check">✓</div> Priority customer support</div>
     </div>
-    <button class="modal-upgrade-btn" onclick="closeModal();switchView('billing',document.querySelectorAll('.ptab')[2])">
-      Upgrade to Pro — $49/month
-    </button>
+    <button class="modal-upgrade-btn" onclick="closeModal();switchView('billing',document.querySelectorAll('.ptab')[2])">Upgrade to Pro — $49/month</button>
     <button class="modal-skip" onclick="closeModal()">Maybe later</button>
     <div style="text-align:center;font-size:12px;color:var(--text3);margin-top:12px;">Cancel anytime · Secure checkout via Stripe</div>
   </div>
 </div>
 
-<!-- Script -->
-<script src="script.js"></script>
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ── Supabase init ── */
+const SUPABASE_URL      = 'https://nfgxuwcvdgqhdaydcbmd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mZ3h1d2N2ZGdxaGRheWRjYm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTAyNDIsImV4cCI6MjA4OTE2NjI0Mn0.YF_PtMv8IOxEii4qPkPwcTojnJ7NUO94fCWBWGM0AAY';
+// The CDN exposes the library as window.supabase
+const { createClient } = window.supabase;
+const supabaseClient   = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ── Auth Modal ─────────────────────────────── */
+function openAuthModal(tab = 'signup') {
+  document.getElementById('auth-modal-backdrop').classList.add('open');
+  switchAuthTab(tab);
+  // Reset forms & messages on open
+  document.getElementById('signupForm').reset();
+  document.getElementById('signinForm').reset();
+  ['signup-msg','signin-msg'].forEach(id => {
+    const el = document.getElementById(id);
+    el.className = 'auth-msg';
+    el.textContent = '';
+  });
+  document.getElementById('auth-form-view').style.display = 'block';
+  document.getElementById('auth-success-view').classList.remove('show');
+}
+
+function closeAuthModal() {
+  document.getElementById('auth-modal-backdrop').classList.remove('open');
+}
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+// Close on backdrop click
+document.getElementById('auth-modal-backdrop').addEventListener('click', function(e) {
+  if (e.target === this) closeAuthModal();
+});
+
+/* ── Sign Up ─────────────────────────────────── */
+async function handleSignUp(e) {
+  e.preventDefault();
+  const email    = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const btn      = document.getElementById('signup-btn');
+  const msg      = document.getElementById('signup-msg');
+
+  msg.className = 'auth-msg'; msg.textContent = '';
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+    if (error) {
+      msg.className = 'auth-msg error';
+      msg.textContent = error.message;
+    } else {
+      // Show success view
+      document.getElementById('auth-form-view').style.display = 'none';
+      const successMsg = document.getElementById('auth-success-msg');
+      const needsConfirm = data.user && !data.session;
+      successMsg.textContent = needsConfirm
+        ? `We sent a confirmation link to ${email}. Click it to activate your account, then sign in.`
+        : `Welcome! You're now signed in as ${email}.`;
+      document.getElementById('auth-success-view').classList.add('show');
+      // Update UI with user email
+      updateUserDisplay(email);
+    }
+  } catch (err) {
+    msg.className = 'auth-msg error';
+    msg.textContent = 'An unexpected error occurred. Please try again.';
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+/* ── Sign In ─────────────────────────────────── */
+async function handleSignIn(e) {
+  e.preventDefault();
+  const email    = document.getElementById('signin-email').value.trim();
+  const password = document.getElementById('signin-password').value;
+  const btn      = document.getElementById('signin-btn');
+  const msg      = document.getElementById('signin-msg');
+
+  msg.className = 'auth-msg'; msg.textContent = '';
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      msg.className = 'auth-msg error';
+      msg.textContent = error.message;
+    } else {
+      updateUserDisplay(email);
+      closeAuthModal();
+      // Navigate to dashboard
+      switchView('dashboard', document.querySelectorAll('.ptab')[1]);
+    }
+  } catch (err) {
+    msg.className = 'auth-msg error';
+    msg.textContent = 'An unexpected error occurred. Please try again.';
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+/* ── Update user display ─────────────────────── */
+function updateUserDisplay(email) {
+  const initials = email.slice(0, 2).toUpperCase();
+  const displayName = email.split('@')[0];
+  ['user-avatar','topbar-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = initials;
+  });
+  ['user-name','topbar-name'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = displayName;
+  });
+}
+
+/* ── Session restore ─────────────────────────── */
+supabaseClient.auth.getSession().then(({ data: { session } }) => {
+  if (session && session.user) {
+    updateUserDisplay(session.user.email);
+  }
+});
+
+/* ── View switching ──────────────────────────── */
+function switchView(id, tabEl) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+  window.scrollTo(0, 0);
+  closeMobileMenu();
+}
+
+/* ── Upgrade modal ───────────────────────────── */
+function openModal()  { document.getElementById('modal-backdrop').classList.add('open'); }
+function closeModal() { document.getElementById('modal-backdrop').classList.remove('open'); }
+document.getElementById('modal-backdrop').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+/* ── Mobile nav ──────────────────────────────── */
+function toggleMobileMenu() {
+  document.getElementById('mobile-menu').classList.toggle('open');
+}
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+}
+
+/* ── Lead generation ─────────────────────────── */
+const FREE_LIMIT = 20;
+let allLeads = [], usedLeads = 0;
+
+const MOCK = {
+  Restaurants: [
+    { name: "Tony's Pizza Co.",   phone: '(512) 555-0198', email: 'hello@tonyspizza.com',   website: 'tonyspizza.com',   rating: 4.6, reviews: 142 },
+    { name: 'The Burger Lab',     phone: '(512) 555-0231', email: 'orders@burgerlab.com',   website: 'burgerlab.com',    rating: 4.4, reviews: 89  },
+    { name: 'Fresh Bowl Cafe',    phone: '(512) 555-0076', email: null,                      website: null,               rating: 4.1, reviews: 34  },
+    { name: 'Metro Bistro LLC',   phone: '(512) 555-0312', email: 'info@metrobistro.com',   website: 'metrobistro.com',  rating: 4.8, reviews: 211 },
+    { name: 'Urban Tacos Group',  phone: '(512) 555-0445', email: 'hi@urbantacos.io',       website: 'urbantacos.io',    rating: 4.3, reviews: 67  },
+  ],
+  Plumbers:     [{ name: 'Prime Plumbing Co.',  phone: '(713) 555-0144', email: 'service@primeplumbing.com', website: 'primeplumbing.com', rating: 4.9, reviews: 67 }, { name: 'Elite Pipes LLC', phone: '(713) 555-0289', email: null, website: null, rating: 4.5, reviews: 43 }, { name: 'Central Flow Group', phone: '(713) 555-0321', email: 'jobs@centralflow.com', website: 'centralflow.com', rating: 4.7, reviews: 91 }],
+  Dentists:     [{ name: 'Downtown Dental Studio', phone: '(310) 555-0167', email: 'schedule@dtstudio.com', website: 'dtstudio.com', rating: 4.8, reviews: 203 }, { name: 'Bright Smiles Clinic', phone: '(310) 555-0099', email: 'hello@brightsmiles.com', website: 'brightsmiles.com', rating: 4.6, reviews: 138 }, { name: 'Metro Dental Group', phone: '(310) 555-0245', email: null, website: null, rating: 4.4, reviews: 76 }],
+  HVAC:         [{ name: 'CoolAir Solutions', phone: '(512) 555-0388', email: 'service@coolair.com', website: 'coolair.com', rating: 4.5, reviews: 88 }, { name: 'Austin Climate Pros', phone: '(512) 555-0142', email: 'info@austinclimate.com', website: 'austinclimate.com', rating: 4.7, reviews: 114 }],
+  'Coffee Shops': [{ name: 'Bean & Brew Co.', phone: '(404) 555-0033', email: 'hi@beanandbrew.com', website: 'beanandbrew.com', rating: 4.9, reviews: 334 }, { name: 'Morning Cup LLC', phone: '(404) 555-0099', email: null, website: null, rating: 4.2, reviews: 58 }, { name: 'The Roastery Club', phone: '(404) 555-0177', email: 'hello@theroastery.com', website: 'theroastery.com', rating: 4.7, reviews: 190 }],
+  _default:     [{ name: 'Prime Services Co.', phone: '(555) 555-0101', email: 'hello@primeservices.com', website: 'primeservices.com', rating: 4.5, reviews: 85 }, { name: 'Downtown Pros LLC', phone: '(555) 555-0202', email: 'info@downtownpros.com', website: 'downtownpros.com', rating: 4.3, reviews: 62 }, { name: 'Metro Solutions Inc.', phone: '(555) 555-0303', email: null, website: null, rating: 4.6, reviews: 119 }, { name: 'City Experts Group', phone: '(555) 555-0404', email: 'help@cityexperts.com', website: 'cityexperts.com', rating: 4.8, reviews: 231 }],
+};
+
+function generateLeads() {
+  const biz  = document.getElementById('biz-select').value;
+  const city = document.getElementById('city-input').value.trim();
+  const err  = document.getElementById('err-bar');
+  err.classList.remove('show');
+  if (!biz)  { document.getElementById('err-text').textContent = 'Please select a business type.'; err.classList.add('show'); return; }
+  if (!city) { document.getElementById('err-text').textContent = 'Please enter a city name.'; err.classList.add('show'); return; }
+  if (usedLeads >= FREE_LIMIT) { openModal(); return; }
+  const btn = document.getElementById('gen-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+  setTimeout(() => {
+    const pool     = MOCK[biz] || MOCK._default;
+    const canAdd   = FREE_LIMIT - usedLeads;
+    const newLeads = pool.slice(0, Math.min(pool.length, canAdd)).map(l => ({ ...l, city, type: biz, _id: Math.random() }));
+    allLeads   = [...newLeads, ...allLeads];
+    usedLeads += newLeads.length;
+    updateUI(); renderTable();
+    btn.classList.remove('loading'); btn.disabled = false;
+    const sub = document.getElementById('search-sub');
+    if (usedLeads >= FREE_LIMIT) { sub.textContent = 'Free limit reached — upgrade to Pro for unlimited leads.'; sub.style.color = '#ea4335'; }
+    else { sub.textContent = `${FREE_LIMIT - usedLeads} free leads remaining.`; sub.style.color = ''; }
+  }, 1600);
+}
+
+function updateUI() {
+  document.getElementById('sc-total').textContent   = allLeads.length;
+  document.getElementById('sc-cities').textContent  = new Set(allLeads.map(l => l.city)).size;
+  document.getElementById('sc-cats').textContent    = new Set(allLeads.map(l => l.type)).size;
+  const left   = Math.max(0, FREE_LIMIT - usedLeads);
+  const leftEl = document.getElementById('sc-left');
+  leftEl.textContent = left; leftEl.style.color = left <= 5 ? '#ea4335' : '#34a853';
+  const pct  = Math.min((usedLeads / FREE_LIMIT) * 100, 100);
+  const fill = document.getElementById('usage-fill');
+  fill.style.width      = pct + '%';
+  fill.style.background = pct >= 80 ? '#ea4335' : '#1a73e8';
+  document.getElementById('usage-count').textContent = `${usedLeads} / ${FREE_LIMIT} leads`;
+  const eb = document.getElementById('export-btn');
+  if (allLeads.length > 0) { eb.disabled = false; eb.style.opacity = '1'; }
+  document.getElementById('table-headline').textContent = allLeads.length > 0 ? 'Leads Found' : 'Your Leads';
+  document.getElementById('table-sub').textContent      = allLeads.length > 0 ? `${allLeads.length} result${allLeads.length > 1 ? 's' : ''}` : '';
+}
+
+function getInitials(name) {
+  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+function renderTable() {
+  const c = document.getElementById('leads-container');
+  if (!allLeads.length) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-title">No leads yet</div><div class="empty-sub">Choose a business type and city above, then click Generate Leads.</div></div>`;
+    return;
+  }
+  const rows = allLeads.map((l, i) => `
+    <tr style="animation-delay:${i*40}ms">
+      <td><div class="td-biz"><div class="td-biz-init">${getInitials(l.name)}</div><div><div class="td-biz-name">${l.name}</div><div class="td-biz-type">${l.type}</div></div></div></td>
+      <td style="font-size:13px;color:#aaa;">${l.phone || '<span style="color:var(--text3)">—</span>'}</td>
+      <td>${l.email ? `<a href="mailto:${l.email}" style="color:#669df6;text-decoration:none;font-size:13px;">${l.email}</a>` : '<span style="color:var(--text3);font-size:13px;">—</span>'}</td>
+      <td>${l.website ? '<span class="badge-green">Available</span>' : '<span class="badge-gray">No website</span>'}</td>
+      <td><span class="td-city">${l.city}</span></td>
+      <td><div class="td-rating"><span class="td-star">★</span>${l.rating} <span style="color:var(--text3);font-size:11px;">(${l.reviews})</span></div></td>
+    </tr>`).join('');
+  c.innerHTML = `<div style="overflow-x:auto;"><table><thead><tr><th>Business</th><th>Phone</th><th>Email</th><th>Website</th><th>City</th><th>Rating</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function exportCSV() {
+  if (!allLeads.length) return;
+  const headers = ['Business','Type','Phone','Email','Website','City','Rating','Reviews'];
+  const rows    = allLeads.map(l => [l.name,l.type,l.phone||'',l.email||'',l.website||'',l.city,l.rating,l.reviews]);
+  const csv     = [headers,...rows].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a       = document.createElement('a');
+  a.href        = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download    = `mapleads-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
 </body>
 </html>
