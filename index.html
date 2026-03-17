@@ -884,6 +884,243 @@ tbody tr:last-child td  { border-bottom: none; }
   .stats-cards { grid-template-columns: 1fr 1fr; }
   .price-dollar { font-size: 36px; }
 }
+
+/* ════════════════════════════════════════════════════
+   FLOATING SUPPORT BUTTON
+════════════════════════════════════════════════════ */
+@keyframes fabPop  { 0%{transform:scale(0);opacity:0} 70%{transform:scale(1.12)} 100%{transform:scale(1);opacity:1} }
+@keyframes fabPing { 0%{transform:scale(1);opacity:.7} 100%{transform:scale(2.2);opacity:0} }
+@keyframes drawerUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes successPop { 0%{transform:scale(.8);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+
+/* FAB button */
+.sup-fab {
+  position: fixed;
+  bottom: 28px; right: 28px;
+  z-index: 8000;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--blue);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 24px rgba(26,115,232,.55), 0 2px 8px rgba(0,0,0,.3);
+  transition: transform .2s, box-shadow .2s, background .18s;
+  animation: fabPop .5s .3s cubic-bezier(.34,1.56,.64,1) both;
+  outline: none;
+}
+.sup-fab:hover  { transform: translateY(-3px) scale(1.06); box-shadow: 0 10px 32px rgba(26,115,232,.65),0 4px 12px rgba(0,0,0,.3); background: #1565d8; }
+.sup-fab:active { transform: scale(.96); }
+.sup-fab svg    { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .22s; }
+.sup-fab.open svg { transform: rotate(90deg); }
+
+/* Ping ring */
+.sup-fab::before {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(26,115,232,.5);
+  animation: fabPing 2s ease-out 1.2s infinite;
+}
+.sup-fab.open::before { display: none; }
+
+/* Tooltip */
+.sup-fab-tip {
+  position: absolute;
+  right: calc(100% + 12px); top: 50%; transform: translateY(-50%);
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 7px 13px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  opacity: 0; pointer-events: none;
+  transition: opacity .18s .05s;
+  font-family: 'DM Sans', sans-serif;
+}
+.sup-fab-tip::after {
+  content: '';
+  position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+  border: 6px solid transparent; border-left-color: var(--border2);
+}
+.sup-fab:hover .sup-fab-tip { opacity: 1; }
+.sup-fab.open .sup-fab-tip  { display: none; }
+
+/* Unread badge */
+.sup-badge {
+  position: absolute; top: -2px; right: -2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--red); border: 2px solid var(--bg);
+  font-size: 9px; font-weight: 800; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .2s;
+}
+.sup-fab.open .sup-badge { transform: scale(0); }
+
+/* ── Support drawer ── */
+.sup-drawer {
+  position: fixed;
+  bottom: 100px; right: 28px;
+  z-index: 7999;
+  width: 360px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.7), 0 4px 16px rgba(0,0,0,.3);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: calc(100vh - 140px);
+}
+.sup-drawer.open {
+  display: flex;
+  animation: drawerUp .3s cubic-bezier(.34,1.2,.64,1) both;
+}
+
+/* Drawer header */
+.sup-hdr {
+  display: flex; align-items: center; gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(26,115,232,.15) 0%, transparent 80%);
+  flex-shrink: 0;
+}
+.sup-hdr-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--blue-dim); border: 1px solid rgba(26,115,232,.3);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.sup-hdr-icon svg { width: 18px; height: 18px; fill: none; stroke: var(--blue); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.sup-hdr-text { flex: 1; min-width: 0; }
+.sup-hdr-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -.01em; }
+.sup-hdr-sub   { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.sup-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text2); font-size: 14px;
+  transition: all .15s; flex-shrink: 0;
+}
+.sup-close:hover { background: var(--bg3); color: #fff; border-color: var(--border2); }
+
+/* Drawer body / scrollable */
+.sup-body {
+  flex: 1; overflow-y: auto; padding: 18px 20px 20px;
+}
+.sup-body::-webkit-scrollbar { width: 3px; }
+.sup-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Form fields */
+.sup-field { margin-bottom: 14px; }
+.sup-label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--text2); text-transform: uppercase;
+  letter-spacing: .07em; margin-bottom: 6px;
+}
+.sup-input, .sup-select, .sup-textarea {
+  width: 100%; padding: 10px 13px;
+  border-radius: 10px; border: 1.5px solid var(--border2);
+  background: var(--bg3); font-size: 13px; font-weight: 500;
+  color: #fff; font-family: 'DM Sans', sans-serif;
+  outline: none; transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.sup-input:focus, .sup-select:focus, .sup-textarea:focus {
+  border-color: var(--blue);
+  background: var(--bg4);
+  box-shadow: 0 0 0 3px rgba(26,115,232,.12);
+}
+.sup-input::placeholder, .sup-textarea::placeholder { color: var(--text3); }
+.sup-select { cursor: pointer; appearance: none; }
+.sup-select option { background: var(--bg3); color: #fff; }
+.sup-textarea {
+  resize: none; min-height: 90px; line-height: 1.55;
+}
+
+/* Two-col row */
+.sup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Submit button */
+.sup-submit {
+  width: 100%; padding: 12px;
+  border-radius: 10px; border: none;
+  background: var(--blue); color: #fff;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all .2s;
+  box-shadow: 0 3px 14px rgba(26,115,232,.4);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 4px;
+}
+.sup-submit:hover   { background: #1565d8; box-shadow: 0 6px 20px rgba(26,115,232,.55); transform: translateY(-1px); }
+.sup-submit:disabled{ background: var(--bg4); color: var(--text3); box-shadow: none; transform: none; cursor: not-allowed; }
+.sup-spinner {
+  width: 15px; height: 15px;
+  border: 2.5px solid rgba(255,255,255,.25);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin .7s linear infinite; display: none;
+}
+.sup-submit.loading .sup-btn-label { display: none; }
+.sup-submit.loading .sup-spinner   { display: block; }
+
+/* Error bar */
+.sup-err {
+  display: none; align-items: center; gap: 7px;
+  padding: 9px 12px; border-radius: 8px;
+  background: rgba(234,67,53,.1); border: 1px solid rgba(234,67,53,.2);
+  color: #f28b82; font-size: 12px; font-weight: 600;
+  margin-top: 10px;
+}
+.sup-err.show { display: flex; }
+.sup-err svg  { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; flex-shrink: 0; }
+
+/* ── Success screen ── */
+.sup-success {
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  padding: 32px 24px; min-height: 300px;
+}
+.sup-success.show { display: flex; }
+.sup-success-ring {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(52,168,83,.14); border: 2px solid rgba(52,168,83,.4);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  animation: successPop .45s cubic-bezier(.34,1.56,.64,1) both;
+}
+.sup-success-ring svg { width: 28px; height: 28px; fill: none; stroke: var(--green); stroke-width: 2.8; stroke-linecap: round; }
+.sup-success-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+.sup-success-sub   { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 22px; max-width: 240px; }
+.sup-success-back  {
+  padding: 10px 22px; border-radius: 9px; border: 1px solid var(--border2);
+  background: transparent; color: var(--text); font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
+}
+.sup-success-back:hover { background: var(--bg3); border-color: var(--border2); }
+
+/* Alt contact chips */
+.sup-alt  { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.sup-alt-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 10px; }
+.sup-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.sup-chip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg3);
+  font-size: 12px; font-weight: 600; color: var(--text2);
+  text-decoration: none; cursor: pointer; transition: all .16s;
+}
+.sup-chip:hover { border-color: rgba(26,115,232,.4); background: var(--bg4); color: var(--text); }
+.sup-chip svg { width: 13px; height: 13px; fill: none; stroke: var(--blue); stroke-width: 2; flex-shrink: 0; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .sup-fab      { bottom: 20px; right: 20px; width: 50px; height: 50px; }
+  .sup-fab svg  { width: 21px; height: 21px; }
+  .sup-drawer   { right: 12px; left: 12px; width: auto; bottom: 88px; }
+  .sup-fab-tip  { display: none; }
+  .sup-row      { grid-template-columns: 1fr; gap: 0; }
+}
+@media (max-width: 380px) {
+  .sup-drawer { right: 8px; left: 8px; bottom: 82px; }
+}
+
 </style>
 </head>
 <body>
@@ -1526,13 +1763,8 @@ async function handleSignUp(e) {
   btn.classList.add('loading'); btn.disabled = true;
 
   try {
-    const { data, error } = await supabaseClient.auth.signUp({
-  email: email,
-  password: password,
-  options: {
-    emailRedirectTo: 'https://https://googlemapsaas-zeta.vercel.app/dashboard.html'
-  }
-});
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
     if (error) {
       msg.className = 'auth-msg error';
       msg.textContent = error.message;
@@ -1727,6 +1959,231 @@ function exportCSV() {
   a.click();
   URL.revokeObjectURL(a.href);
 }
+
+
+/* ═══════════════════════════════════════════
+   FLOATING SUPPORT WIDGET
+═══════════════════════════════════════════ */
+(function() {
+  'use strict';
+
+  /* ── open / close / toggle ── */
+  window.supToggle = function() {
+    const fab    = document.getElementById('sup-fab');
+    const drawer = document.getElementById('sup-drawer');
+    const isOpen = drawer.classList.contains('open');
+    isOpen ? supClose() : supOpen();
+  };
+
+  window.supOpen = function() {
+    const fab    = document.getElementById('sup-fab');
+    const drawer = document.getElementById('sup-drawer');
+    drawer.classList.add('open');
+    fab.classList.add('open');
+    // swap icon to X
+    document.getElementById('sup-fab-icon').innerHTML =
+      '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
+  };
+
+  window.supClose = function() {
+    const fab    = document.getElementById('sup-fab');
+    const drawer = document.getElementById('sup-drawer');
+    drawer.classList.remove('open');
+    fab.classList.remove('open');
+    // restore chat icon
+    document.getElementById('sup-fab-icon').innerHTML =
+      '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>';
+  };
+
+  /* ── close on outside click ── */
+  document.addEventListener('click', function(e) {
+    const fab    = document.getElementById('sup-fab');
+    const drawer = document.getElementById('sup-drawer');
+    if (drawer.classList.contains('open') &&
+        !drawer.contains(e.target) &&
+        !fab.contains(e.target)) {
+      supClose();
+    }
+  });
+
+  /* ── close on Escape ── */
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') supClose();
+  });
+
+  /* ── form submit ── */
+  window.supSubmit = async function(e) {
+    e.preventDefault();
+    const err  = document.getElementById('sup-err');
+    const errT = document.getElementById('sup-err-text');
+    err.classList.remove('show');
+
+    const name  = document.getElementById('sup-name').value.trim();
+    const email = document.getElementById('sup-email').value.trim();
+    const topic = document.getElementById('sup-topic').value;
+    const msg   = document.getElementById('sup-msg').value.trim();
+
+    // Validate
+    if (!name)  { errT.textContent = 'Please enter your name.';           err.classList.add('show'); return; }
+    if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+                  errT.textContent = 'Please enter a valid email address.'; err.classList.add('show'); return; }
+    if (!topic) { errT.textContent = 'Please choose a topic.';            err.classList.add('show'); return; }
+    if (!msg)   { errT.textContent = 'Please write a message.';           err.classList.add('show'); return; }
+
+    // Loading state
+    const btn = document.getElementById('sup-submit-btn');
+    btn.classList.add('loading'); btn.disabled = true;
+
+    try {
+      // ── Optional: save to Supabase 'support_tickets' table ──────────────
+      // Uncomment the block below once you've created the table in Supabase:
+      //
+      // const { error } = await supabaseClient
+      //   .from('support_tickets')
+      //   .insert([{ name, email, topic, message: msg, created_at: new Date().toISOString() }]);
+      // if (error) throw error;
+      // ────────────────────────────────────────────────────────────────────
+
+      // Simulate a short network delay (remove once real API is wired)
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Show success screen
+      document.getElementById('sup-form-view').style.display = 'none';
+      document.getElementById('sup-success').classList.add('show');
+
+    } catch (ex) {
+      errT.textContent = 'Something went wrong. Please email us directly.';
+      err.classList.add('show');
+    } finally {
+      btn.classList.remove('loading'); btn.disabled = false;
+    }
+  };
+
+  /* ── reset form after success ── */
+  window.supReset = function() {
+    document.getElementById('sup-form').reset();
+    document.getElementById('sup-err').classList.remove('show');
+    document.getElementById('sup-success').classList.remove('show');
+    document.getElementById('sup-form-view').style.display = 'block';
+  };
+})();
+
 </script>
+
+
+<!-- ══════════════════════════════════════════════
+     FLOATING SUPPORT BUTTON + DRAWER
+══════════════════════════════════════════════ -->
+
+<!-- FAB -->
+<button class="sup-fab" id="sup-fab" onclick="supToggle()" aria-label="Support">
+  <span class="sup-fab-tip">Need help?</span>
+  <div class="sup-badge">1</div>
+  <!-- Chat icon (default) -->
+  <svg id="sup-fab-icon" viewBox="0 0 24 24">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+</button>
+
+<!-- Drawer -->
+<div class="sup-drawer" id="sup-drawer">
+
+  <!-- Header -->
+  <div class="sup-hdr">
+    <div class="sup-hdr-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <div class="sup-hdr-text">
+      <div class="sup-hdr-title">MapLeads Support</div>
+      <div class="sup-hdr-sub">We reply within 24 hours</div>
+    </div>
+    <button class="sup-close" onclick="supClose()">✕</button>
+  </div>
+
+  <!-- Scrollable body -->
+  <div class="sup-body" id="sup-body">
+
+    <!-- Form view -->
+    <div id="sup-form-view">
+      <form id="sup-form" onsubmit="supSubmit(event)" novalidate>
+
+        <!-- Name + Email row -->
+        <div class="sup-row">
+          <div class="sup-field">
+            <label class="sup-label" for="sup-name">Full Name</label>
+            <input class="sup-input" id="sup-name" type="text" placeholder="Alex Johnson" required>
+          </div>
+          <div class="sup-field">
+            <label class="sup-label" for="sup-email">Email</label>
+            <input class="sup-input" id="sup-email" type="email" placeholder="you@example.com" required>
+          </div>
+        </div>
+
+        <!-- Topic -->
+        <div class="sup-field">
+          <label class="sup-label" for="sup-topic">Topic</label>
+          <select class="sup-select" id="sup-topic" required>
+            <option value="" disabled selected>Choose a topic…</option>
+            <option value="general">General Question</option>
+            <option value="technical">Technical Issue</option>
+            <option value="billing">Billing &amp; Payments</option>
+            <option value="feature">Feature Request</option>
+            <option value="data">Data / Lead Quality</option>
+            <option value="account">Account &amp; Login</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <!-- Message -->
+        <div class="sup-field">
+          <label class="sup-label" for="sup-msg">Message</label>
+          <textarea class="sup-textarea" id="sup-msg" placeholder="Describe your question or issue in detail…" required></textarea>
+        </div>
+
+        <!-- Submit -->
+        <button class="sup-submit" type="submit" id="sup-submit-btn">
+          <span class="sup-btn-label">Send Message</span>
+          <div class="sup-spinner"></div>
+        </button>
+
+        <!-- Error -->
+        <div class="sup-err" id="sup-err">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="sup-err-text">Please fill in all fields.</span>
+        </div>
+
+      </form>
+
+      <!-- Alt contact -->
+      <div class="sup-alt">
+        <div class="sup-alt-label">Other ways to reach us</div>
+        <div class="sup-chips">
+          <a class="sup-chip" href="mailto:support@mapleads.io">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Email us
+          </a>
+          <a class="sup-chip" href="#">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Help Center
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success view -->
+    <div class="sup-success" id="sup-success">
+      <div class="sup-success-ring">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="sup-success-title">Message sent!</div>
+      <p class="sup-success-sub">We've got your message and will reply to your email within 24 hours.</p>
+      <button class="sup-success-back" onclick="supReset()">Send another message</button>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
