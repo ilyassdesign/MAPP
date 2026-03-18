@@ -1416,7 +1416,7 @@ tbody tr:last-child td  { border-bottom: none; }
         <div class="price-card pro">
           <div class="pro-badge-top">Most Popular</div>
           <div class="price-plan-name pro">Pro</div>
-          <div class="price-dollar pro">$99</div>
+          <div class="price-dollar pro">$49</div>
           <div class="price-period">/month · cancel anytime</div>
           <div class="price-desc">For professionals and agencies who need leads every day.</div>
           <div class="price-divider"></div>
@@ -1641,7 +1641,7 @@ tbody tr:last-child td  { border-bottom: none; }
               <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;">
                 <div>
                   <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);margin-bottom:6px;">Pro Plan</div>
-                  <div style="font-size:28px;font-weight:800;color:var(--blue);font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.04em;">$99<span style="font-size:15px;color:var(--text3);font-weight:500;">/month</span></div>
+                  <div style="font-size:28px;font-weight:800;color:var(--blue);font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.04em;">$49<span style="font-size:15px;color:var(--text3);font-weight:500;">/month</span></div>
                 </div>
                 <div class="plan-badge">Most Popular</div>
               </div>
@@ -1653,7 +1653,7 @@ tbody tr:last-child td  { border-bottom: none; }
                 <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#ccc;font-weight:500;"><div class="pf-check">✓</div> CSV export</div>
                 <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#ccc;font-weight:500;"><div class="pf-check">✓</div> Priority support</div>
               </div>
-              <button class="price-btn-pro" onclick="openModal()">Upgrade to Pro — $99/month</button>
+              <button class="price-btn-pro" onclick="openModal()">Upgrade to Pro — $49/month</button>
               <div style="text-align:center;font-size:12px;color:var(--text3);margin-top:10px;">Cancel anytime · Secure checkout via Stripe</div>
             </div>
           </div>
@@ -1700,7 +1700,7 @@ tbody tr:last-child td  { border-bottom: none; }
       <div class="modal-feat"><div class="mf-check">✓</div> 3× faster priority scraping</div>
       <div class="modal-feat"><div class="mf-check">✓</div> Priority customer support</div>
     </div>
-    <button class="modal-upgrade-btn" onclick="closeModal();switchView('billing',document.querySelectorAll('.ptab')[2])">Upgrade to Pro — $99/month</button>
+    <button class="modal-upgrade-btn" onclick="closeModal();switchView('billing',document.querySelectorAll('.ptab')[2])">Upgrade to Pro — $49/month</button>
     <button class="modal-skip" onclick="closeModal()">Maybe later</button>
     <div style="text-align:center;font-size:12px;color:var(--text3);margin-top:12px;">Cancel anytime · Secure checkout via Stripe</div>
   </div>
@@ -1840,15 +1840,66 @@ supabaseClient.auth.getSession().then(({ data: { session } }) => {
   }
 });
 
-/* ── View switching ──────────────────────────── */
+/* ── View switching  (hash-based routing) ────── */
+//
+//  URLs
+//  ────────────────────────────────────────────
+//  /              → landing page
+//  /#dashboard    → dashboard
+//  /#billing      → billing
+//
+
+const PAGE_TITLES = {
+  landing   : 'MapLeads — Find Local Business Leads',
+  dashboard : 'Dashboard — MapLeads',
+  billing   : 'Billing & Plan — MapLeads',
+};
+
 function switchView(id, tabEl) {
+  // Show the correct view, sync the preview-bar tabs
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + id).classList.add('active');
   if (tabEl) tabEl.classList.add('active');
+
+  // Update the URL without a page reload
+  const hash = id === 'landing' ? '' : '#' + id;
+  if (window.location.hash !== hash)
+    history.pushState({ view: id }, '', hash || window.location.pathname);
+
+  // Update the browser-tab title
+  document.title = PAGE_TITLES[id] || PAGE_TITLES.landing;
+
   window.scrollTo(0, 0);
   closeMobileMenu();
 }
+
+/* ── Activate the right view from the current URL hash ── */
+function routeFromHash() {
+  const valid  = ['landing', 'dashboard', 'billing'];
+  const hash   = window.location.hash.replace('#', '').toLowerCase();
+  const viewId = valid.includes(hash) ? hash : 'landing';
+
+  // Sync the preview-bar tab that matches this view
+  let matchTab = null;
+  document.querySelectorAll('.ptab').forEach(t => {
+    if (t.textContent.trim().toLowerCase().includes(viewId)) matchTab = t;
+  });
+
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + viewId).classList.add('active');
+  if (matchTab) matchTab.classList.add('active');
+  document.title = PAGE_TITLES[viewId] || PAGE_TITLES.landing;
+}
+
+// Run once on page load so a shared/bookmarked URL opens the right view
+routeFromHash();
+
+// Keep in sync when the user clicks Back / Forward
+window.addEventListener('popstate',   () => { routeFromHash(); window.scrollTo(0,0); });
+// Keep in sync if the user edits the address bar directly
+window.addEventListener('hashchange', () => { routeFromHash(); window.scrollTo(0,0); });
 
 /* ── Upgrade modal ───────────────────────────── */
 function openModal()  { document.getElementById('modal-backdrop').classList.add('open'); }
@@ -2160,7 +2211,7 @@ function exportCSV() {
       <div class="sup-alt">
         <div class="sup-alt-label">Other ways to reach us</div>
         <div class="sup-chips">
-          <a class="sup-chip" href="mailto:support@mapleads.io">
+          <a class="sup-chip" href="/cdn-cgi/l/email-protection#2b585e5b5b44595f6b464a5b474e4a4f58054244">
             <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             Email us
           </a>
@@ -2180,10 +2231,4 @@ function exportCSV() {
       <div class="sup-success-title">Message sent!</div>
       <p class="sup-success-sub">We've got your message and will reply to your email within 24 hours.</p>
       <button class="sup-success-back" onclick="supReset()">Send another message</button>
-    </div>
-
-  </div>
-</div>
-
-</body>
-</html>
+   
