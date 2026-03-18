@@ -1719,6 +1719,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = window.supabase;
 const supabaseClient   = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* ── Auth state ─────────────────────────────────
+   currentUser is null when logged out, or the
+   Supabase user object when logged in.
+   PROTECTED_VIEWS are the views that require login.
+─────────────────────────────────────────────── */
+let currentUser = null;
+const PROTECTED_VIEWS = ['dashboard', 'billing'];
+
 /* ── Auth Modal ─────────────────────────────── */
 function openAuthModal(tab = 'signup') {
   document.getElementById('auth-modal-backdrop').classList.add('open');
@@ -1769,10 +1777,11 @@ async function handleSignUp(e) {
       msg.className = 'auth-msg error';
       msg.textContent = error.message;
     } else {
-      // Sign-up succeeded — update UI, close modal and go straight to dashboard
+      // Sign-up succeeded — set auth state, update UI, go to dashboard
+      currentUser = data.user;
       updateUserDisplay(email);
       closeAuthModal();
-      switchView('dashboard', document.querySelectorAll('.ptab')[1]);
+      _activateView('dashboard', document.querySelectorAll('.ptab')[1]);
     }
   } catch (err) {
     msg.className = 'auth-msg error';
@@ -1800,10 +1809,11 @@ async function handleSignIn(e) {
       msg.className = 'auth-msg error';
       msg.textContent = error.message;
     } else {
+      // Sign-in succeeded — set auth state, update UI, go to dashboard
+      currentUser = data.user;
       updateUserDisplay(email);
       closeAuthModal();
-      // Navigate to dashboard
-      switchView('dashboard', document.querySelectorAll('.ptab')[1]);
+      _activateView('dashboard', document.querySelectorAll('.ptab')[1]);
     }
   } catch (err) {
     msg.className = 'auth-msg error';
@@ -1828,17 +1838,33 @@ function updateUserDisplay(email) {
 }
 
 /* ── Session restore + initial routing ──────────
-   • No session  → always start on the landing page (ignore any URL hash)
-   • Has session → restore the user and send them straight to the dashboard
+   • No session  → always start on the landing page
+   • Has session → restore user, unlock protected views,
+                   then send them to the dashboard
 ─────────────────────────────────────────────── */
 supabaseClient.auth.getSession().then(({ data: { session } }) => {
   if (session && session.user) {
-    // Returning user with a valid session → skip landing, open dashboard
+    // Returning user with a valid session
+    currentUser = session.user;                          // unlock protected views
     updateUserDisplay(session.user.email);
-    switchView('dashboard', document.querySelectorAll('.ptab')[1]);
+    _activateView('dashboard', document.querySelectorAll('.ptab')[1]);
   } else {
-    // No session → always show the landing page regardless of URL hash
-    switchView('landing', document.querySelectorAll('.ptab')[0]);
+    // No session — always land on the landing page
+    _activateView('landing', document.querySelectorAll('.ptab')[0]);
+  }
+});
+
+/* ── Listen for auth state changes (sign-in / sign-out) ─
+   This fires every time the session changes, keeping
+   currentUser in sync even if the user logs out in
+   another tab or the token expires.
+─────────────────────────────────────────────────────── */
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  currentUser = session ? session.user : null;
+
+  if (!currentUser) {
+    // Session ended — force the user back to landing
+    _activateView('landing', document.querySelectorAll('.ptab')[0]);
   }
 });
 
@@ -1858,7 +1884,22 @@ const PAGE_TITLES = {
 };
 
 function switchView(id, tabEl) {
-  // Show the correct view, sync the preview-bar tabs
+  // ── Auth guard ────────────────────────────────
+  // If the user is not logged in and tries to reach
+  // a protected view, bounce them back to landing
+  // and open the sign-in modal instead.
+  if (PROTECTED_VIEWS.includes(id) && !currentUser) {
+    _activateView('landing');
+    openAuthModal('signin');
+    return;
+  }
+
+  _activateView(id, tabEl);
+}
+
+// Internal helper — activates a view without the auth check
+// (used by the auth-aware router itself)
+function _activateView(id, tabEl) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + id).classList.add('active');
@@ -1880,7 +1921,16 @@ function switchView(id, tabEl) {
 function routeFromHash() {
   const valid  = ['landing', 'dashboard', 'billing'];
   const hash   = window.location.hash.replace('#', '').toLowerCase();
-  const viewId = valid.includes(hash) ? hash : 'landing';
+  let   viewId = valid.includes(hash) ? hash : 'landing';
+
+  // ── Auth guard ────────────────────────────────
+  // If this is a protected view and no session exists,
+  // silently fall back to landing (no modal pop-up here
+  // since this fires on back/forward navigation too).
+  if (PROTECTED_VIEWS.includes(viewId) && !currentUser) {
+    viewId = 'landing';
+    history.replaceState({ view: 'landing' }, '', window.location.pathname);
+  }
 
   // Sync the preview-bar tab that matches this view
   let matchTab = null;
@@ -1894,9 +1944,6 @@ function routeFromHash() {
   if (matchTab) matchTab.classList.add('active');
   document.title = PAGE_TITLES[viewId] || PAGE_TITLES.landing;
 }
-
-// Run once on page load so a shared/bookmarked URL opens the right view
-routeFromHash();
 
 // Keep in sync when the user clicks Back / Forward
 window.addEventListener('popstate',   () => { routeFromHash(); window.scrollTo(0,0); });
