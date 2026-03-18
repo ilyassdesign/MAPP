@@ -1769,16 +1769,10 @@ async function handleSignUp(e) {
       msg.className = 'auth-msg error';
       msg.textContent = error.message;
     } else {
-      // Show success view
-      document.getElementById('auth-form-view').style.display = 'none';
-      const successMsg = document.getElementById('auth-success-msg');
-      const needsConfirm = data.user && !data.session;
-      successMsg.textContent = needsConfirm
-        ? `We sent a confirmation link to ${email}. Click it to activate your account, then sign in.`
-        : `Welcome! You're now signed in as ${email}.`;
-      document.getElementById('auth-success-view').classList.add('show');
-      // Update UI with user email
+      // Sign-up succeeded — update UI, close modal and go straight to dashboard
       updateUserDisplay(email);
+      closeAuthModal();
+      switchView('dashboard', document.querySelectorAll('.ptab')[1]);
     }
   } catch (err) {
     msg.className = 'auth-msg error';
@@ -1833,10 +1827,18 @@ function updateUserDisplay(email) {
   });
 }
 
-/* ── Session restore ─────────────────────────── */
+/* ── Session restore + initial routing ──────────
+   • No session  → always start on the landing page (ignore any URL hash)
+   • Has session → restore the user and send them straight to the dashboard
+─────────────────────────────────────────────── */
 supabaseClient.auth.getSession().then(({ data: { session } }) => {
   if (session && session.user) {
+    // Returning user with a valid session → skip landing, open dashboard
     updateUserDisplay(session.user.email);
+    switchView('dashboard', document.querySelectorAll('.ptab')[1]);
+  } else {
+    // No session → always show the landing page regardless of URL hash
+    switchView('landing', document.querySelectorAll('.ptab')[0]);
   }
 });
 
