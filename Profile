@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profile — MapLeads</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+/* ═══════════════════════════════════════════════════
+   RESET & TOKENS  (same palette as index.html)
+═══════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:#0a0a0a;color:#e8e8e8;-webkit-font-smoothing:antialiased;min-height:100vh}
+h1,h2,h3,h4,h5{font-family:'Plus Jakarta Sans',sans-serif}
+::selection{background:rgba(26,115,232,.35);color:#fff}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#111}
+::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#3a3a3a}
+
+:root{
+  --bg:#0a0a0a; --bg2:#111111; --bg3:#161616; --bg4:#1c1c1c;
+  --border:#222222; --border2:#2e2e2e;
+  --blue:#1a73e8; --blue-lt:#4285f4;
+  --blue-dim:rgba(26,115,232,.12); --blue-mid:rgba(26,115,232,.22);
+  --text:#e8e8e8; --text2:#9a9a9a; --text3:#666666;
+  --green:#34a853; --green-dim:rgba(52,168,83,.14); --red:#ea4335;
+}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}
+
+.fu{opacity:0;animation:fadeUp .55s ease both}
+.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}.d4{animation-delay:.26s}
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT  — sidebar + main (mirrors dashboard)
+═══════════════════════════════════════════════════ */
+.app{display:flex;min-height:100vh}
+
+/* ─── Sidebar ─── */
+.sidebar{
+  width:220px;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;
+}
+.sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.g-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.g-logo-mark{width:28px;height:28px;border-radius:7px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.g-logo-mark svg{width:14px;height:14px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round}
+.g-logo-text{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;color:#fff;letter-spacing:-.02em}
+.g-logo-text span{color:var(--blue)}
+
+.sb-nav{flex:1;padding:10px 8px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border-radius:8px;font-size:14px;font-weight:500;color:var(--text2);
+  cursor:pointer;transition:all .15s;margin-bottom:2px;
+  text-decoration:none;border:1px solid transparent;
+}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--blue-dim);color:var(--blue);font-weight:600;border-color:rgba(26,115,232,.25)}
+.nav-item svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;flex-shrink:0}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:currentColor;margin-left:auto;display:none}
+.nav-item.active .nav-dot{display:block}
+
+.sb-footer{padding:14px;border-top:1px solid var(--border)}
+.logout-btn{
+  display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;
+  border-radius:8px;border:none;background:transparent;font-size:13px;
+  font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .15s;
+}
+.logout-btn:hover{background:rgba(234,67,53,.08);color:var(--red)}
+.logout-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;flex-shrink:0}
+
+/* ─── Main content ─── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ─── Topbar ─── */
+.topbar{
+  height:58px;border-bottom:1px solid var(--border);background:var(--bg2);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;flex-shrink:0;position:sticky;top:0;z-index:10;
+}
+.breadcrumb{font-size:15px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.breadcrumb-sep{color:var(--border2)}
+.breadcrumb-sub{color:var(--text2);font-weight:400}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-user{
+  display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;
+  border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:background .15s;
+}
+.topbar-user:hover{background:var(--bg3)}
+.db-av{width:28px;height:28px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;flex-shrink:0;overflow:hidden}
+.db-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.db-uname{font-size:13px;font-weight:600;color:#fff}
+.db-uplan{font-size:11px;color:var(--text3);font-weight:500}
+
+/* ─── Page body ─── */
+.page-body{flex:1;overflow-y:auto;background:var(--bg);padding:36px 40px}
+
+/* ═══════════════════════════════════════════════════
+   PROFILE CARD
+═══════════════════════════════════════════════════ */
+.profile-grid{
+  display:grid;grid-template-columns:340px 1fr;gap:24px;
+  max-width:920px;
+}
+
+/* Avatar card */
+.avatar-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:18px;
+  padding:32px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;
+}
+.avatar-ring{
+  position:relative;width:110px;height:110px;margin-bottom:20px;
+}
+.avatar-img{
+  width:110px;height:110px;border-radius:50%;
+  background:linear-gradient(135deg,var(--blue),var(--blue-lt));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:36px;font-weight:800;
+  color:#fff;overflow:hidden;border:3px solid var(--border2);
+}
+.avatar-img img{width:100%;height:100%;object-fit:cover}
+.avatar-upload-btn{
+  position:absolute;bottom:2px;right:2px;
+  width:30px;height:30px;border-radius:50%;
+  background:var(--blue);border:2px solid var(--bg2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background .18s;
+}
+.avatar-upload-btn:hover{background:#1565d8}
+.avatar-upload-btn svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round}
+.avatar-upload-input{display:none}
+
+.avatar-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.02em}
+.avatar-email{font-size:13px;color:var(--text2);word-break:break-all}
+.avatar-plan-badge{
+  display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;
+  background:var(--blue-dim);border:1px solid rgba(26,115,232,.3);
+  font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;
+  letter-spacing:.07em;margin-top:14px;
+}
+.upload-progress{
+  width:100%;margin-top:16px;display:none;
+  background:var(--bg4);border-radius:4px;height:4px;overflow:hidden;
+}
+.upload-progress-bar{height:100%;background:var(--blue);width:0%;transition:width .3s ease;border-radius:4px}
+.upload-status{font-size:12px;color:var(--text2);margin-top:8px;min-height:16px}
+.upload-status.error{color:var(--red)}
+.upload-status.success{color:var(--green)}
+
+/* Details card */
+.details-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:28px 28px;
+}
+.card-section-title{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text3);margin-bottom:16px;
+}
+.profile-field{margin-bottom:20px}
+.profile-label{
+  display:block;font-size:12px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;
+}
+.profile-input{
+  width:100%;padding:11px 14px;border-radius:10px;
+  border:1.5px solid var(--border2);background:var(--bg3);
+  font-size:14px;font-weight:500;color:#fff;
+  font-family:'DM Sans',sans-serif;outline:none;transition:all .2s;
+}
+.profile-input:focus{border-color:var(--blue);background:var(--bg4);box-shadow:0 0 0 3px rgba(26,115,232,.12)}
+.profile-input::placeholder{color:var(--text3)}
+.profile-input:read-only{color:var(--text2);cursor:default;border-color:var(--border)}
+.profile-input:read-only:focus{border-color:var(--border);box-shadow:none;background:var(--bg3)}
+
+.form-actions{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.btn-save{
+  padding:10px 22px;border-radius:9px;border:none;background:var(--blue);
+  color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:all .2s;
+  box-shadow:0 2px 12px rgba(26,115,232,.35);display:flex;align-items:center;gap:7px;
+}
+.btn-save:hover{background:#1565d8;transform:translateY(-1px);box-shadow:0 4px 18px rgba(26,115,232,.5)}
+.btn-save:disabled{background:var(--bg4);color:var(--text3);box-shadow:none;transform:none;cursor:not-allowed}
+.btn-cancel{
+  padding:10px 18px;border-radius:9px;border:1px solid var(--border2);
+  background:transparent;color:var(--text2);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;
+}
+.btn-cancel:hover{background:var(--bg3);color:var(--text)}
+.save-spinner{width:14px;height:14px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.btn-save.loading .save-label{display:none}
+.btn-save.loading .save-spinner{display:block}
+
+.form-msg{font-size:13px;font-weight:600;margin-top:10px;padding:10px 14px;border-radius:8px;display:none}
+.form-msg.success{display:block;background:var(--green-dim);border:1px solid rgba(52,168,83,.3);color:var(--green)}
+.form-msg.error  {display:block;background:rgba(234,67,53,.1);border:1px solid rgba(234,67,53,.25);color:#f28b82}
+
+.divider{height:1px;background:var(--border);margin:20px 0}
+
+/* Stats row inside detail card */
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+.ps-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.ps-val{font-size:22px;font-weight:800;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.03em}
+.ps-val span{color:var(--blue)}
+.ps-lbl{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+
+/* Loading skeleton */
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sk-line{height:14px;border-radius:6px;margin-bottom:8px}
+.sk-avatar{width:110px;height:110px;border-radius:50%}
+.sk-title{height:18px;width:60%;border-radius:6px;margin:0 auto 8px}
+
+/* Page loading overlay */
+.page-loader{
+  position:fixed;inset:0;background:var(--bg);z-index:9999;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;
+  transition:opacity .3s;
+}
+.page-loader.hidden{opacity:0;pointer-events:none}
+.loader-ring{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+.loader-text{font-size:13px;color:var(--text3);font-weight:500}
+
+/* Danger zone */
+.danger-zone{background:rgba(234,67,53,.06);border:1px solid rgba(234,67,53,.2);border-radius:12px;padding:18px 20px}
+.danger-title{font-size:13px;font-weight:700;color:var(--red);margin-bottom:4px}
+.danger-sub{font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.55}
+.btn-danger{
+  padding:9px 18px;border-radius:8px;border:1px solid rgba(234,67,53,.4);
+  background:transparent;color:var(--red);font-size:13px;font-weight:600;
+  cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;
+}
+.btn-danger:hover{background:rgba(234,67,53,.1)}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════ */
+@media(max-width:900px){
+  .profile-grid{grid-template-columns:1fr}
+  .page-body{padding:24px 20px}
+  .avatar-card{flex-direction:row;text-align:left;align-items:flex-start;gap:20px}
+  .avatar-ring{flex-shrink:0;margin-bottom:0}
+  .profile-stats{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  .app{flex-direction:column}
+  .sidebar{
+    width:100%;height:auto;flex-direction:row;align-items:center;
+    border-right:none;border-bottom:1px solid var(--border);
+    position:static;
+  }
+  .sb-logo{padding:12px;border-bottom:none;border-right:1px solid var(--border);flex-shrink:0}
+  .sb-nav{flex-direction:row;padding:8px;overflow-x:auto;display:flex;gap:4px;flex:1}
+  .nav-item{padding:8px 12px;white-space:nowrap;font-size:13px;margin-bottom:0;flex-shrink:0}
+  .nav-dot{display:none!important}
+  .sb-footer{display:none}
+  .page-body{padding:20px 16px}
+  .avatar-card{flex-direction:column;align-items:center;text-align:center}
+  .profile-stats{grid-template-columns:1fr 1fr 1fr}
+  .topbar{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="page-loader" id="page-loader">
+  <div class="loader-ring"></div>
+  <div class="loader-text">Loading profile…</div>
+</div>
+
+<div class="app" id="app" style="opacity:0;transition:opacity .3s">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <a class="g-logo" href="index.html">
+        <div class="g-logo-mark">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="4"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+        </div>
+        <span class="g-logo-text">Map<span>Leads</span></span>
+      </a>
+    </div>
+
+    <nav class="sb-nav">
+      <a class="nav-item" href="index.html#dashboard">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item active" href="profile.html">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+        <div class="nav-dot"></div>
+      </a>
+      <a class="nav-item" href="index.html">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
+      </a>
+    </nav>
+
+    <div class="sb-footer">
+      <button class="logout-btn" id="logout-btn" onclick="handleLogout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="breadcrumb">
+        <span>MapLeads</span>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-sub">Profile</span>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-user">
+          <div class="db-av" id="topbar-avatar">
+            <span id="topbar-initials">–</span>
+          </div>
+          <div>
+            <div class="db-uname" id="topbar-name">Loading…</div>
+            <div class="db-uplan">Free Plan</div>
+          </div>
+          <span style="color:var(--text3);font-size:11px;margin-left:4px;">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page body -->
+    <div class="page-body">
+      <div class="db-page-title fu" style="margin-bottom:4px;">Your Profile</div>
+      <div class="db-page-sub fu d1" style="font-size:14px;color:var(--text2);margin-bottom:28px;">Manage your personal information and account settings.</div>
+
+      <div class="profile-grid">
+
+        <!-- ── Avatar card ── -->
+        <div class="avatar-card fu d2">
+          <div class="avatar-ring">
+            <div class="avatar-img" id="avatar-display">
+              <span id="avatar-initials">–</span>
+            </div>
+            <label class="avatar-upload-btn" for="avatar-file-input" title="Change photo">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </label>
+            <input class="avatar-upload-input" type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp,image/gif" onchange="handleAvatarUpload(event)">
+          </div>
+
+          <div class="avatar-name" id="display-name">–</div>
+          <div class="avatar-email" id="display-email">–</div>
+          <div class="avatar-plan-badge">Free Plan</div>
+
+          <div class="upload-progress" id="upload-progress">
+            <div class="upload-progress-bar" id="upload-progress-bar"></div>
+          </div>
+          <div class="upload-status" id="upload-status"></div>
+        </div>
+
+        <!-- ── Details card ── -->
+        <div class="details-card fu d3">
+
+          <!-- Edit profile form -->
+          <div class="card-section-title">Account Information</div>
+          <form id="profile-form" onsubmit="handleSaveProfile(event)">
+
+            <div class="profile-field">
+              <label class="profile-label" for="field-name">Display Name</label>
+              <input class="profile-input" id="field-name" type="text" placeholder="Your full name" autocomplete="name">
+            </div>
+
+            <div class="profile-field">
+              <label class="profile-label" for="field-email">Email Address</label>
+              <input class="profile-input" id="field-email" type="email" readonly>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-save" type="submit" id="save-btn">
+                <span class="save-label">Save Changes</span>
+                <div class="save-spinner"></div>
+              </button>
+            </div>
+            <div class="form-msg" id="form-msg"></div>
+          </form>
+
+          <div class="divider"></div>
+
+          <!-- Account stats -->
+          <div class="card-section-title">Account Stats</div>
+          <div class="profile-stats">
+            <div class="ps-item">
+              <div class="ps-val"><span id="stat-leads">0</span></div>
+              <div class="ps-lbl">Leads Generated</div>
+            </div>
+            <div class="ps-item">
+              <div class="ps-val" id="stat-plan">Free</div>
+              <div class="ps-lbl">Current Plan</div>
+            </div>
+            <div class="ps-item">
+              <div class="ps-val"><span id="stat-joined">–</span></div>
+              <div class="ps-lbl">Member Since</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Danger zone -->
+          <div class="danger-zone">
+            <div class="danger-title">Danger Zone</div>
+            <div class="danger-sub">Permanently delete your account and all associated data. This action cannot be undone.</div>
+            <button class="btn-danger" onclick="confirmDeleteAccount()">Delete Account</button>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- end page-body -->
+  </div><!-- end main -->
+</div><!-- end app -->
+
+<script>
+'use strict';
+
+/* ── Supabase ── */
+const SUPABASE_URL      = 'https://nfgxuwcvdgqhdaydcbmd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mZ3h1d2N2ZGdxaGRheWRjYm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTAyNDIsImV4cCI6MjA4OTE2NjI0Mn0.YF_PtMv8IOxEii4qPkPwcTojnJ7NUO94fCWBWGM0AAY';
+const { createClient } = window.supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser   = null;
+let currentProfile = {};
+
+/* ── Helpers ── */
+function initials(str) {
+  if (!str) return '?';
+  return str.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+}
+function setAvatarUI(url, name, email) {
+  const av  = document.getElementById('avatar-display');
+  const ini = document.getElementById('avatar-initials');
+  const tbA = document.getElementById('topbar-avatar');
+  const tbI = document.getElementById('topbar-initials');
+  const ins = initials(name || email || '?');
+
+  if (url) {
+    av.innerHTML  = `<img src="${url}" alt="avatar">`;
+    tbA.innerHTML = `<img src="${url}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    av.innerHTML  = `<span>${ins}</span>`;
+    tbA.innerHTML = `<span id="topbar-initials">${ins}</span>`;
+  }
+}
+function showFormMsg(msg, type='success') {
+  const el = document.getElementById('form-msg');
+  el.className = `form-msg ${type}`;
+  el.textContent = msg;
+  setTimeout(()=>{ el.className='form-msg'; el.textContent=''; }, 4000);
+}
+function formatDate(iso) {
+  if(!iso) return '–';
+  return new Date(iso).toLocaleDateString('en-US',{month:'short',year:'numeric'});
+}
+
+/* ── Auth guard: redirect to index.html if not logged in ── */
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  currentUser = session.user;
+  await loadProfile();
+
+  // Hide loader, show app
+  document.getElementById('page-loader').classList.add('hidden');
+  document.getElementById('app').style.opacity = '1';
+}
+
+/* ── Load profile from DB ── */
+async function loadProfile() {
+  const { data: profile, error } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', currentUser.id)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Profile load error:', error);
+  }
+
+  // If no profile row yet, upsert one
+  if (!profile) {
+    const newProfile = {
+      id:         currentUser.id,
+      email:      currentUser.email,
+      name:       currentUser.user_metadata?.full_name || currentUser.email.split('@')[0],
+      avatar_url: null,
+    };
+    await sb.from('profiles').upsert([newProfile]);
+    currentProfile = newProfile;
+  } else {
+    currentProfile = profile;
+  }
+
+  renderProfile();
+}
+
+/* ── Render profile into UI ── */
+function renderProfile() {
+  const name  = currentProfile.name  || currentUser.email.split('@')[0];
+  const email = currentProfile.email || currentUser.email;
+  const avUrl = currentProfile.avatar_url || null;
+
+  // Avatar card
+  setAvatarUI(avUrl, name, email);
+  document.getElementById('display-name').textContent  = name;
+  document.getElementById('display-email').textContent = email;
+  document.getElementById('avatar-initials').textContent = initials(name);
+
+  // Topbar
+  document.getElementById('topbar-name').textContent = name;
+
+  // Form fields
+  document.getElementById('field-name').value  = name;
+  document.getElementById('field-email').value = email;
+
+  // Stats
+  document.getElementById('stat-joined').textContent = formatDate(currentUser.created_at);
+}
+
+/* ── Save profile ── */
+async function handleSaveProfile(e) {
+  e.preventDefault();
+  const name = document.getElementById('field-name').value.trim();
+  if (!name) { showFormMsg('Name cannot be empty.', 'error'); return; }
+
+  const btn = document.getElementById('save-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const { error } = await sb
+    .from('profiles')
+    .upsert([{ id: currentUser.id, email: currentUser.email, name, avatar_url: currentProfile.avatar_url || null }]);
+
+  btn.classList.remove('loading'); btn.disabled = false;
+
+  if (error) {
+    showFormMsg('Failed to save changes.', 'error');
+  } else {
+    currentProfile.name = name;
+    // Re-render name in avatar card & topbar
+    document.getElementById('display-name').textContent  = name;
+    document.getElementById('topbar-name').textContent   = name;
+    document.getElementById('avatar-initials').textContent = initials(name);
+    if (!currentProfile.avatar_url) {
+      document.getElementById('avatar-display').innerHTML = `<span>${initials(name)}</span>`;
+    }
+    showFormMsg('Profile updated successfully!', 'success');
+  }
+}
+
+/* ── Avatar upload ── */
+async function handleAvatarUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Validate
+  const maxMB = 2;
+  if (file.size > maxMB * 1024 * 1024) {
+    setUploadStatus(`File too large (max ${maxMB} MB).`, 'error'); return;
+  }
+  if (!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type)) {
+    setUploadStatus('Unsupported format. Use PNG, JPEG, or WebP.', 'error'); return;
+  }
+
+  const statusEl   = document.getElementById('upload-status');
+  const progressEl = document.getElementById('upload-progress');
+  const barEl      = document.getElementById('upload-progress-bar');
+
+  progressEl.style.display = 'block';
+  barEl.style.width = '10%';
+  setUploadStatus('Uploading…', '');
+
+  const ext      = file.name.split('.').pop();
+  const filePath = `${currentUser.id}/avatar.${ext}`;
+
+  // Upload to Supabase Storage bucket "avatars"
+  const { error: uploadError } = await sb.storage
+    .from('avatars')
+    .upload(filePath, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) {
+    barEl.style.width = '0%';
+    progressEl.style.display = 'none';
+    setUploadStatus('Upload failed: ' + uploadError.message, 'error');
+    return;
+  }
+
+  barEl.style.width = '80%';
+
+  // Get public URL
+  const { data: urlData } = sb.storage.from('avatars').getPublicUrl(filePath);
+  const avatarUrl = urlData.publicUrl + '?v=' + Date.now(); // cache-bust
+
+  // Save to profiles table
+  const { error: dbError } = await sb
+    .from('profiles')
+    .upsert([{
+      id:         currentUser.id,
+      email:      currentUser.email,
+      name:       currentProfile.name || currentUser.email.split('@')[0],
+      avatar_url: urlData.publicUrl,
+    }]);
+
+  barEl.style.width = '100%';
+  setTimeout(() => { progressEl.style.display = 'none'; barEl.style.width = '0%'; }, 800);
+
+  if (dbError) {
+    setUploadStatus('Uploaded but failed to save URL.', 'error');
+    return;
+  }
+
+  currentProfile.avatar_url = urlData.publicUrl;
+  setAvatarUI(avatarUrl, currentProfile.name, currentProfile.email);
+  setUploadStatus('Photo updated!', 'success');
+  setTimeout(() => { statusEl.textContent = ''; }, 3000);
+}
+
+function setUploadStatus(msg, type) {
+  const el = document.getElementById('upload-status');
+  el.textContent = msg;
+  el.className = 'upload-status' + (type ? ' ' + type : '');
+}
+
+/* ── Logout ── */
+async function handleLogout() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+/* ── Delete account ── */
+function confirmDeleteAccount() {
+  if (!confirm('Are you sure you want to permanently delete your account? This cannot be undone.')) return;
+  // In production you'd call a Supabase Edge Function with admin rights.
+  alert('Account deletion requires a server-side function. Please contact support@mapleads.io.');
+}
+
+/* ── Watch session changes ── */
+sb.auth.onAuthStateChange((event, session) => {
+  if (!session) window.location.href = 'index.html';
+});
+
+// Start
+init();
+</script>
+</body>
+</html>
