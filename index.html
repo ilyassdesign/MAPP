@@ -1546,6 +1546,9 @@ tbody tr:last-child td  { border-bottom: none; }
             <div class="si-wrap">
               <input class="g-input" id="city-input" type="text" placeholder="City (e.g. Austin, TX)">
             </div>
+            <div class="si-wrap" style="max-width:140px;flex-shrink:0;">
+              <input class="g-input" id="count-input" type="number" min="1" max="50" placeholder="Contacts (e.g. 10)" style="width:100%;">
+            </div>
             <button class="gen-btn" id="gen-btn" onclick="generateLeads()">
               <span class="spin-hide" id="btn-label">Generate Leads</span>
               <div class="spinner"></div>
@@ -1998,26 +2001,37 @@ const MOCK = {
 };
 
 function generateLeads() {
-  const biz  = document.getElementById('biz-select').value;
-  const city = document.getElementById('city-input').value.trim();
-  const err  = document.getElementById('err-bar');
+  const biz   = document.getElementById('biz-select').value;
+  const city  = document.getElementById('city-input').value.trim();
+  const countVal = parseInt(document.getElementById('count-input').value) || 0;
+  const err   = document.getElementById('err-bar');
   err.classList.remove('show');
-  if (!biz)  { document.getElementById('err-text').textContent = 'Please select a business type.'; err.classList.add('show'); return; }
-  if (!city) { document.getElementById('err-text').textContent = 'Please enter a city name.'; err.classList.add('show'); return; }
+  if (!biz)        { document.getElementById('err-text').textContent = 'Please select a business type.'; err.classList.add('show'); return; }
+  if (!city)       { document.getElementById('err-text').textContent = 'Please enter a city name.'; err.classList.add('show'); return; }
+  if (!countVal || countVal < 1) { document.getElementById('err-text').textContent = 'Please enter how many contacts you want (e.g. 10).'; err.classList.add('show'); return; }
   if (usedLeads >= FREE_LIMIT) { openModal(); return; }
   const btn = document.getElementById('gen-btn');
   btn.classList.add('loading'); btn.disabled = true;
   setTimeout(() => {
     const pool     = MOCK[biz] || MOCK._default;
-    const canAdd   = FREE_LIMIT - usedLeads;
-    const newLeads = pool.slice(0, Math.min(pool.length, canAdd)).map(l => ({ ...l, city, type: biz, _id: Math.random() }));
-    allLeads   = [...newLeads, ...allLeads];
-    usedLeads += newLeads.length;
+    const canAdd   = Math.min(countVal, FREE_LIMIT - usedLeads);
+    // Repeat pool entries to fill requested count
+    const repeated = [];
+    let nameCounters = {};
+    for (let i = 0; repeated.length < canAdd; i++) {
+      const base = pool[i % pool.length];
+      const key  = base.name;
+      nameCounters[key] = (nameCounters[key] || 0) + 1;
+      const suffix = nameCounters[key] > 1 ? ` #${nameCounters[key]}` : '';
+      repeated.push({ ...base, name: base.name + suffix, city, type: biz, _id: Math.random() });
+    }
+    allLeads   = [...repeated, ...allLeads];
+    usedLeads += repeated.length;
     updateUI(); renderTable();
     btn.classList.remove('loading'); btn.disabled = false;
     const sub = document.getElementById('search-sub');
     if (usedLeads >= FREE_LIMIT) { sub.textContent = 'Free limit reached — upgrade to Pro for unlimited leads.'; sub.style.color = '#ea4335'; }
-    else { sub.textContent = `${FREE_LIMIT - usedLeads} free leads remaining.`; sub.style.color = ''; }
+    else { sub.textContent = `Generated ${repeated.length} leads · ${FREE_LIMIT - usedLeads} free leads remaining.`; sub.style.color = ''; }
   }, 1600);
 }
 
